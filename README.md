@@ -2,6 +2,9 @@
 
 Scaffold para el **Tech Sphere Challenge 2026**: agente de seguimiento post-operatorio con conversación (texto + voz en navegador), RAG clínico, consola de conocimiento en caliente, trazabilidad de fuentes, lógica de escalate y resumen estructurado de llamada.
 
+> **Handoff completo para humanos y agentes LLM:** lee [`STATUS.md`](./STATUS.md) primero (contexto del reto, hecho/pendiente, contratos, plan).  
+> Instrucciones cortas para agents: [`AGENTS.md`](./AGENTS.md).
+
 > Stack libre. El **LLM es único y obligatorio** (se anuncia el 7 de agosto). Hoy corre en modo `mock` para que puedas desarrollar sin API key.
 
 ## Qué incluye
