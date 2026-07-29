@@ -1,132 +1,19 @@
-import { useEffect, useRef, useState } from "react";
-import { endCall, sendTurn, startCall } from "../api";
-import {
-  canUseSpeechRecognition,
-  canUseSpeechSynthesis,
-  listSpanishVoices,
-  listenOnce,
-  speak,
-  type VoiceOption,
-} from "../speech";
-import type { AgentTurnResponse, CallMessage, CallSummary } from "../types";
-
-type ChatItem = CallMessage & { latency_ms?: number | null };
-
-const VOICE_STORAGE_KEY = "tsva.voiceName";
+import { useEffect, useRef } from "react";
+import { useAgentVoice } from "../hooks/useAgentVoice";
+import { useCallSession } from "../hooks/useCallSession";
+import ChatMessage from "./ChatMessage";
+import VoiceControls from "./VoiceControls";
 
 export default function CallPanel() {
-  const [patientName, setPatientName] = useState("Ana Pérez");
-  const [procedure, setProcedure] = useState("apendicectomía");
-  const [callId, setCallId] = useState<string | null>(null);
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatItem[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [listening, setListening] = useState(false);
-  const [voiceOut, setVoiceOut] = useState(true);
-  const [voices, setVoices] = useState<VoiceOption[]>([]);
-  const [voiceName, setVoiceName] = useState(
-    () => localStorage.getItem(VOICE_STORAGE_KEY) ?? "",
-  );
-  const [summary, setSummary] = useState<CallSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
+  const voice = useAgentVoice();
+  const speakRef = useRef(voice.speakAgent);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    speakRef.current = voice.speakAgent;
+  }, [voice.speakAgent]);
 
-  useEffect(() => {
-    void listSpanishVoices().then((options) => {
-      setVoices(options);
-      setVoiceName((current) => {
-        if (current && options.some((v) => v.name === current)) return current;
-        const best = options[0]?.name ?? "";
-        if (best) localStorage.setItem(VOICE_STORAGE_KEY, best);
-        return best;
-      });
-    });
-  }, []);
-
-  function speakAgent(text: string) {
-    if (!voiceOut) return;
-    void speak(text, { voiceName: voiceName || undefined, lang: "es-CO" });
-  }
-
-  async function handleStart() {
-    setError(null);
-    setSummary(null);
-    setBusy(true);
-    try {
-      const res = await startCall(patientName, procedure);
-      setCallId(res.call_id);
-      setMessages([{ role: "agent", content: res.greeting }]);
-      speakAgent(res.greeting);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo iniciar la llamada");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleSend(text?: string) {
-    const message = (text ?? input).trim();
-    if (!callId || !message) return;
-    setError(null);
-    setBusy(true);
-    setInput("");
-    setMessages((prev) => [...prev, { role: "patient", content: message }]);
-    try {
-      const turn: AgentTurnResponse = await sendTurn(callId, message);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "agent",
-          content: turn.reply,
-          sources: turn.sources,
-          escalate: turn.escalate,
-          escalate_reason: turn.escalate_reason,
-          patient_state: turn.patient_state,
-          latency_ms: turn.latency_ms,
-        },
-      ]);
-      speakAgent(turn.reply);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error en el turno");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleListen() {
-    if (!canUseSpeechRecognition()) {
-      setError("Tu navegador no soporta reconocimiento de voz. Usa Chrome y escribe el texto.");
-      return;
-    }
-    setListening(true);
-    setError(null);
-    try {
-      const transcript = await listenOnce("es-CO");
-      if (transcript) await handleSend(transcript);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error de micrófono");
-    } finally {
-      setListening(false);
-    }
-  }
-
-  async function handleEnd() {
-    if (!callId) return;
-    setBusy(true);
-    try {
-      const res = await endCall(callId);
-      setSummary(res);
-      setCallId(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo cerrar la llamada");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const call = useCallSession({
+    onAgentReply: (text) => speakRef.current(text),
+  });
 
   return (
     <section className="panel">
@@ -135,131 +22,101 @@ export default function CallPanel() {
           <h2>Llamada de seguimiento</h2>
           <p>Texto primero; voz del navegador como adaptador (STT/TTS).</p>
         </div>
-        <div className="voice-controls">
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={voiceOut}
-              onChange={(e) => setVoiceOut(e.target.checked)}
-              disabled={!canUseSpeechSynthesis()}
-            />
-            Hablar respuestas
-          </label>
-          <label className="voice-select">
-            Voz
-            <select
-              value={voiceName}
-              disabled={!canUseSpeechSynthesis() || voices.length === 0}
-              onChange={(e) => {
-                setVoiceName(e.target.value);
-                localStorage.setItem(VOICE_STORAGE_KEY, e.target.value);
-              }}
-            >
-              {voices.length === 0 ? (
-                <option value="">Cargando voces…</option>
-              ) : (
-                voices.map((v) => (
-                  <option key={`${v.name}-${v.lang}`} value={v.name}>
-                    {v.label}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
-          <button
-            type="button"
-            className="secondary"
-            disabled={!voiceOut || !voiceName}
-            onClick={() =>
-              speakAgent(
-                "Hola, soy tu agente de seguimiento post-operatorio. ¿Cómo te sientes hoy?",
-              )
-            }
-          >
-            Probar voz
-          </button>
-        </div>
+        <VoiceControls
+          voiceOut={voice.voiceOut}
+          onVoiceOutChange={voice.setVoiceOut}
+          voices={voice.voices}
+          voiceName={voice.voiceName}
+          onVoiceNameChange={voice.selectVoice}
+          speechSupported={voice.speechSupported}
+          onPreview={() =>
+            voice.speakAgent(
+              "Hola, soy tu agente de seguimiento post-operatorio. ¿Cómo te sientes hoy?",
+            )
+          }
+        />
       </header>
 
-      {!callId ? (
+      {!call.callId ? (
         <div className="form-grid">
           <label>
             Paciente
-            <input value={patientName} onChange={(e) => setPatientName(e.target.value)} />
+            <input
+              value={call.patientName}
+              onChange={(e) => call.setPatientName(e.target.value)}
+            />
           </label>
           <label>
             Procedimiento
-            <input value={procedure} onChange={(e) => setProcedure(e.target.value)} />
+            <input
+              value={call.procedure}
+              onChange={(e) => call.setProcedure(e.target.value)}
+            />
           </label>
-          <button type="button" onClick={handleStart} disabled={busy}>
+          <button type="button" onClick={() => void call.start()} disabled={call.busy}>
             Iniciar llamada
           </button>
         </div>
       ) : (
         <div className="call-meta">
           <span>
-            Call ID: <code>{callId}</code>
+            Call ID: <code>{call.callId}</code>
           </span>
-          <button type="button" className="danger" onClick={handleEnd} disabled={busy}>
+          <button
+            type="button"
+            className="danger"
+            onClick={() => void call.end()}
+            disabled={call.busy}
+          >
             Colgar y generar resumen
           </button>
         </div>
       )}
 
       <div className="chat">
-        {messages.map((m, idx) => (
-          <article key={idx} className={`bubble ${m.role}`}>
-            <strong>{m.role === "agent" ? "Agente" : "Paciente"}</strong>
-            <p>{m.content}</p>
-            {m.escalate ? (
-              <div className="alert">ALERTA HUMANO — {m.escalate_reason || "revisar caso"}</div>
-            ) : null}
-            {m.sources && m.sources.length > 0 ? (
-              <ul className="sources">
-                {m.sources.map((s) => (
-                  <li key={s.chunk_id}>
-                    <code>{s.title}</code> · {s.chunk_id}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {typeof m.latency_ms === "number" ? (
-              <small>{m.latency_ms} ms</small>
-            ) : null}
-          </article>
+        {call.messages.map((m, idx) => (
+          <ChatMessage key={`${m.role}-${idx}`} message={m} />
         ))}
-        <div ref={bottomRef} />
+        <div ref={call.bottomRef} />
       </div>
 
-      {callId ? (
+      {call.callId ? (
         <div className="composer">
           <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
+            value={call.input}
+            onChange={(e) => call.setInput(e.target.value)}
             placeholder="Escribe lo que dice el paciente…"
             onKeyDown={(e) => {
-              if (e.key === "Enter") void handleSend();
+              if (e.key === "Enter") void call.send();
             }}
-            disabled={busy}
+            disabled={call.busy}
           />
-          <button type="button" onClick={() => void handleSend()} disabled={busy || !input.trim()}>
+          <button
+            type="button"
+            onClick={() => void call.send()}
+            disabled={call.busy || !call.input.trim()}
+          >
             Enviar
           </button>
-          <button type="button" onClick={() => void handleListen()} disabled={busy || listening}>
-            {listening ? "Escuchando…" : "Hablar"}
+          <button
+            type="button"
+            onClick={() => void call.listenAndSend()}
+            disabled={call.busy || call.listening}
+          >
+            {call.listening ? "Escuchando…" : "Hablar"}
           </button>
         </div>
       ) : null}
 
-      {summary ? (
+      {call.summary ? (
         <div className="summary">
           <h3>Resumen estructurado</h3>
-          <p>{summary.summary_text}</p>
-          <pre>{JSON.stringify(summary, null, 2)}</pre>
+          <p>{call.summary.summary_text}</p>
+          <pre>{JSON.stringify(call.summary, null, 2)}</pre>
         </div>
       ) : null}
 
-      {error ? <p className="error">{error}</p> : null}
+      {call.error ? <p className="error">{call.error}</p> : null}
     </section>
   );
 }

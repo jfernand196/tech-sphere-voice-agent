@@ -9,11 +9,18 @@ Scaffold para el **Tech Sphere Challenge 2026**: agente de seguimiento post-oper
 | Módulo | Ruta | Qué hace |
 |---|---|---|
 | Config | `backend/app/config.py` | `MODEL_ID` / provider vía env |
+| Ports | `backend/app/ports.py` | Contratos `LLMClient` / `KnowledgePort` (DIP) |
 | RAG | `backend/app/rag/` | Subir / buscar / borrar docs (vector store local) |
-| Agent | `backend/app/agent/` | Prompt + respuesta JSON + reglas de escalate |
+| Agent | `backend/app/agent/` | Orquestación + adapters LLM + safety/parsing |
 | Calls | `backend/app/calls/` | Historial + resumen al colgar |
 | Voice | `backend/app/voice/` | Seam para STT/TTS server-side (MVP usa browser) |
-| UI | `frontend/src/` | Pestaña Llamada + Consola de conocimiento |
+| UI | `frontend/src/` | Hooks + componentes (llamada / conocimiento) |
+
+Arquitectura y mapeo SOLID: ver [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+
+```bash
+make test   # pytest (safety rules)
+```
 
 ## Requisitos
 

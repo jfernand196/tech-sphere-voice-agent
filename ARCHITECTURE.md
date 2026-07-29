@@ -1,35 +1,43 @@
-# Arquitectura (scaffold)
+# Arquitectura
+
+## Capas
 
 ```text
-Browser (React)
-  ├─ CallPanel: texto + Web Speech STT/TTS
-  └─ KnowledgeConsole: upload / delete docs
-           │  /api/*
-           ▼
-FastAPI
-  ├─ /calls     → CallService (historial + resumen)
-  ├─ /knowledge → KnowledgeService + LocalVectorStore
-  ├─ /voice     → VoiceService (seam STT/TTS server)
-  └─ agent/     → AgentService (mock | Anthropic)
-                    │
-                    ├─ retrieve RAG chunks
-                    ├─ LLM → JSON contract
-                    └─ safety rules (escalate)
+UI (React)
+  hooks: useCallSession, useAgentVoice
+  components: CallPanel, ChatMessage, VoiceControls, KnowledgeConsole
+        │ /api/*
+        ▼
+API (FastAPI routers)     ← adapters de entrada
+        │
+        ▼
+Use-cases                 ← AgentService, CallService, KnowledgeService
+        │ depends on ports
+        ▼
+Ports (Protocol)          ← LLMClient, KnowledgePort
+        │
+        ▼
+Adapters                  ← MockLLM / AnthropicLLM, LocalVectorStore
 ```
 
-## Contrato de turno
+## SOLID (cómo se aplica)
 
-Toda respuesta del agente incluye: `reply`, `sources[]`, `patient_state`, `escalate`, `escalate_reason`.
+| Principio | Aplicación |
+|---|---|
+| **S**ingle Responsibility | `safety.py` (escalate), `parsing.py` (JSON/sources), `llm_*` (providers), hooks FE por concern |
+| **O**pen/Closed | Nuevo LLM = nuevo adapter + rama en `factory.py`; `AgentService` no cambia |
+| **L**iskov | `MockLLMClient` y `AnthropicLLMClient` cumplen el mismo contrato `LLMClient` |
+| **I**nterface Segregation | Ports chicos (`LLMClient`, `KnowledgePort`), no god-interfaces |
+| **D**ependency Inversion | `AgentService` depende de Protocols; el wiring está en `api/deps.py` |
 
-## Hot knowledge
+## DRY / Clean Code
 
-1. `POST /knowledge/documents` → chunk + embed + persist  
-2. Turnos siguientes recuperan el nuevo doc  
-3. `DELETE /knowledge/documents/{id}` → borra chunks → retrieval ya no lo ve  
+- Un solo contrato de turno en `schemas.py` (BE) y `types.ts` (FE)
+- Reglas de alarma centralizadas en `safety.py` (usadas por mock + guardrail post-LLM)
+- UI de llamada separada de orquestación de estado (hooks)
 
-## Qué reemplazar el 7 ago
+## Tests
 
-- `MODEL_ID` / `LLM_PROVIDER` en `.env`
-- Seed local → dataset Delta Share
-- Embeddings hash → modelo de embeddings real / pgvector
-- Browser STT/TTS → proveedor de voz si hace falta latencia
+```bash
+cd backend && . .venv/bin/activate && PYTHONPATH=. python -m pytest tests -q
+```
