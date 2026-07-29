@@ -1,5 +1,8 @@
+"""Composition root: wires adapters into use-cases (DIP)."""
+
 from functools import lru_cache
 
+from app.agent.factory import build_llm_client
 from app.agent.service import AgentService
 from app.calls.service import CallService
 from app.config import Settings, get_settings
@@ -19,7 +22,11 @@ def get_call_service() -> CallService:
 
 @lru_cache
 def get_agent_service() -> AgentService:
-    return AgentService(get_settings(), get_knowledge_service())
+    settings = get_settings()
+    return AgentService(
+        knowledge=get_knowledge_service(),
+        llm=build_llm_client(settings),
+    )
 
 
 @lru_cache

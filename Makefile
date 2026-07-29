@@ -13,3 +13,6 @@ frontend:
 
 seed-check:
 	curl -s http://127.0.0.1:8001/health && echo && curl -s http://127.0.0.1:8001/knowledge/documents | python3 -m json.tool
+
+test:
+	cd backend && . .venv/bin/activate && PYTHONPATH=. python -m pytest tests -q
