@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { deleteDocument, listDocuments, uploadDocument } from "../api";
 import type { DocumentInfo } from "../types";
 
@@ -9,6 +9,8 @@ export default function KnowledgeConsole() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   async function refresh() {
     const data = await listDocuments();
@@ -21,6 +23,13 @@ export default function KnowledgeConsole() {
     );
   }, []);
 
+  function takeFile(next: File | null) {
+    setFile(next);
+    if (next && !title.trim()) {
+      setTitle(next.name.replace(/\.(txt|md|text)$/i, ""));
+    }
+  }
+
   async function handleUpload() {
     if (!file) return;
     setBusy(true);
@@ -28,9 +37,10 @@ export default function KnowledgeConsole() {
     setMessage(null);
     try {
       const doc = await uploadDocument(file, title || file.name);
-      setMessage(`Documento indexado: ${doc.title} (${doc.chunk_count} chunks)`);
+      setMessage(`Indexado: ${doc.title} · ${doc.chunk_count} fragmentos`);
       setFile(null);
       setTitle("");
+      if (inputRef.current) inputRef.current.value = "";
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al subir");
@@ -45,7 +55,7 @@ export default function KnowledgeConsole() {
     setMessage(null);
     try {
       await deleteDocument(docId);
-      setMessage("Documento eliminado — el agente ya no lo usará.");
+      setMessage("Documento eliminado. El agente ya no lo usará en caliente.");
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al eliminar");
@@ -55,54 +65,80 @@ export default function KnowledgeConsole() {
   }
 
   return (
-    <section className="panel">
+    <section className="panel panel--knowledge">
       <header className="panel-header">
         <div>
           <h2>Consola de conocimiento</h2>
-          <p>Sube un .txt/.md y el agente lo aprende; elimínalo y lo olvida.</p>
+          <p>Sube un protocolo y el agente lo aprende al instante. Elimínalo y lo olvida.</p>
         </div>
+        <span className="count-pill">{docs.length} docs</span>
       </header>
 
-      <div className="form-grid">
-        <label>
-          Título
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Protocolo herida quirúrgica"
-          />
-        </label>
-        <label>
-          Archivo (texto plano recomendado en el scaffold)
-          <input
-            type="file"
-            accept=".txt,.md,.text"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
-        <button type="button" onClick={() => void handleUpload()} disabled={busy || !file}>
-          Subir e indexar
-        </button>
-      </div>
+      <div className="knowledge-layout">
+        <div className="upload-card">
+          <label>
+            Título
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Protocolo herida quirúrgica"
+            />
+          </label>
 
-      <table className="docs-table">
-        <thead>
-          <tr>
-            <th>Título</th>
-            <th>Archivo</th>
-            <th>Chunks</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {docs.map((d) => (
-            <tr key={d.doc_id}>
-              <td>{d.title}</td>
-              <td>
-                <code>{d.filename}</code>
-              </td>
-              <td>{d.chunk_count}</td>
-              <td>
+          <div
+            className={`dropzone ${dragging ? "dropzone--active" : ""} ${file ? "dropzone--filled" : ""}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              takeFile(e.dataTransfer.files?.[0] ?? null);
+            }}
+            onClick={() => inputRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
+            }}
+          >
+            <strong>{file ? file.name : "Arrastra un .txt o .md"}</strong>
+            <span>{file ? "Clic para cambiar archivo" : "o haz clic para elegir"}</span>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".txt,.md,.text"
+              hidden
+              onChange={(e) => takeFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+
+          <button
+            type="button"
+            className="btn-block"
+            onClick={() => void handleUpload()}
+            disabled={busy || !file}
+          >
+            Subir e indexar
+          </button>
+        </div>
+
+        <div className="docs-list">
+          {docs.length === 0 ? (
+            <div className="empty-state">
+              <p>Aún no hay documentos. Sube el primero para alimentar el RAG.</p>
+            </div>
+          ) : (
+            docs.map((d) => (
+              <article key={d.doc_id} className="doc-card enter">
+                <div>
+                  <h3>{d.title}</h3>
+                  <p>
+                    <code>{d.filename}</code> · {d.chunk_count} chunks
+                  </p>
+                </div>
                 <button
                   type="button"
                   className="danger"
@@ -111,19 +147,14 @@ export default function KnowledgeConsole() {
                 >
                   Eliminar
                 </button>
-              </td>
-            </tr>
-          ))}
-          {docs.length === 0 ? (
-            <tr>
-              <td colSpan={4}>Sin documentos todavía.</td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+              </article>
+            ))
+          )}
+        </div>
+      </div>
 
-      {message ? <p className="ok">{message}</p> : null}
-      {error ? <p className="error">{error}</p> : null}
+      {message ? <p className="ok banner-ok">{message}</p> : null}
+      {error ? <p className="error banner-error">{error}</p> : null}
     </section>
   );
 }
