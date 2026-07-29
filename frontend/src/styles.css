@@ -1,0 +1,289 @@
+:root {
+  --bg: #f3f1eb;
+  --ink: #1c2430;
+  --muted: #5b6775;
+  --panel: #fffdf8;
+  --line: #d7d0c4;
+  --accent: #0f6a5b;
+  --danger: #9b2c2c;
+  --alert: #7a3e00;
+  --ok: #1f6b3a;
+  --agent: #e7f2ef;
+  --patient: #f0ebe3;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, #dceee9 0%, transparent 40%),
+    linear-gradient(180deg, #f7f4ee 0%, var(--bg) 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0.2rem 0;
+  line-height: 1.2;
+}
+
+.health {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tabs button,
+.panel button,
+.composer button {
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+}
+
+.tabs button.active,
+.panel button:not(.danger),
+.composer button:not(.danger) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.tabs button:not(.active) {
+  background: transparent;
+  color: var(--ink);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.danger {
+  background: white;
+  color: var(--danger);
+  border-color: #e2b4b4;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.panel-header p,
+.call-meta,
+.toggle {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.voice-controls {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: end;
+  min-width: min(280px, 100%);
+}
+
+.voice-select {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.voice-select select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  background: white;
+  color: var(--ink);
+}
+
+button.secondary {
+  background: white !important;
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+}
+
+input[type="text"],
+input:not([type]),
+input[type="file"] {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: white;
+}
+
+.call-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.chat {
+  display: grid;
+  gap: 0.75rem;
+  max-height: 420px;
+  overflow: auto;
+  padding: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.bubble {
+  border-radius: 0.85rem;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--line);
+}
+
+.bubble.agent {
+  background: var(--agent);
+}
+
+.bubble.patient {
+  background: var(--patient);
+}
+
+.bubble p {
+  margin: 0.35rem 0;
+}
+
+.sources {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.alert {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.4rem;
+  background: #fff1d6;
+  color: var(--alert);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.composer {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.5rem;
+}
+
+.summary {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.summary pre {
+  overflow: auto;
+  background: #1c2430;
+  color: #e8efe9;
+  padding: 0.85rem;
+  border-radius: 0.6rem;
+  font-size: 0.8rem;
+}
+
+.docs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.docs-table th,
+.docs-table td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  padding: 0.65rem 0.35rem;
+  vertical-align: middle;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.ok {
+  color: var(--ok);
+}
+
+@media (max-width: 720px) {
+  .topbar,
+  .call-meta,
+  .panel-header,
+  .composer {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .composer {
+    grid-template-columns: 1fr;
+  }
+}
