@@ -29,9 +29,15 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
 
 button,
@@ -40,8 +46,17 @@ select {
   font: inherit;
 }
 
+/* Avoid iOS zoom-on-focus; keep readable tap targets */
+button,
+input:not([type="checkbox"]):not([type="radio"]),
+select {
+  min-height: 2.75rem;
+  font-size: 1rem;
+}
+
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   background:
     radial-gradient(900px 420px at 10% -12%, #c9ddf2 0%, transparent 55%),
     radial-gradient(720px 360px at 100% 0%, #dfe7f1 0%, transparent 48%),
@@ -49,9 +64,13 @@ select {
 }
 
 .app {
-  max-width: 920px;
+  width: min(920px, 100%);
   margin: 0 auto;
-  padding: 1.75rem 1.25rem 3rem;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right))
+    max(1.5rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
 }
 
 .topbar {
@@ -102,12 +121,18 @@ h2 {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+  max-width: 100%;
   padding: 0.45rem 0.75rem;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.8);
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.status-pill__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -144,8 +169,11 @@ h2 {
 }
 
 .tabs {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.25rem;
+  width: 100%;
+  max-width: 28rem;
   padding: 0.25rem;
   margin-bottom: 1rem;
   border: 1px solid var(--line);
@@ -158,7 +186,7 @@ h2 {
   background: transparent;
   color: var(--muted);
   border-radius: 999px;
-  padding: 0.55rem 1.1rem;
+  padding: 0.65rem 1rem;
   cursor: pointer;
   font-weight: 600;
 }
@@ -387,18 +415,22 @@ button:focus-visible,
 .chat {
   display: grid;
   gap: 0.7rem;
-  max-height: min(48vh, 420px);
+  max-height: min(52dvh, 420px);
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 0.35rem 0.15rem 0.85rem;
   margin-bottom: 0.75rem;
 }
 
 .bubble {
-  width: min(92%, 40rem);
+  width: min(94%, 40rem);
+  max-width: 100%;
   border-radius: 1rem;
   padding: 0.85rem 1rem;
   border: 1px solid transparent;
   animation: rise 0.28s ease both;
+  overflow-wrap: anywhere;
 }
 
 .bubble.agent {
@@ -470,6 +502,8 @@ button:focus-visible,
   gap: 0.5rem;
   position: sticky;
   bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: linear-gradient(180deg, transparent, rgba(247, 249, 252, 0.92) 30%);
 }
 
 .summary-card {
@@ -692,6 +726,7 @@ button:focus-visible,
   }
 }
 
+/* Tablet and down */
 @media (max-width: 820px) {
   .form-grid--2,
   .knowledge-layout,
@@ -708,15 +743,120 @@ button:focus-visible,
     align-items: stretch;
   }
 
-  .composer {
-    grid-template-columns: 1fr;
-  }
-
   .voice-bar {
     align-items: stretch;
   }
 
+  .voice-select,
   .voice-select select {
     width: 100%;
+  }
+
+  .summary-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .summary-actions button,
+  .doc-card button {
+    width: 100%;
+  }
+}
+
+/* Phone portrait */
+@media (max-width: 640px) {
+  .app {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .topbar {
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .lede {
+    display: none;
+  }
+
+  h1 {
+    font-size: 1.45rem;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+  }
+
+  .panel {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+
+  .panel-header p {
+    font-size: 0.86rem;
+  }
+
+  .status-pill {
+    align-self: flex-start;
+    max-width: min(100%, 16rem);
+  }
+
+  .tabs {
+    max-width: none;
+    margin-bottom: 0.85rem;
+  }
+
+  .chat {
+    max-height: min(46dvh, 360px);
+  }
+
+  .composer {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+  }
+
+  .composer input {
+    grid-column: 1 / -1;
+  }
+
+  .bubble {
+    width: 100%;
+  }
+
+  .voice-bar {
+    padding: 0.65rem;
+  }
+
+  .dropzone {
+    min-height: 7rem;
+  }
+
+  .empty-state {
+    min-height: 8rem;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+  .brand {
+    letter-spacing: 0.1em;
+    font-size: 0.7rem;
+  }
+
+  h1 {
+    font-size: 1.28rem;
+  }
+
+  .tabs button {
+    padding-inline: 0.65rem;
+    font-size: 0.92rem;
+  }
+}
+
+/* Prefer stacked desktop header only when narrow */
+@media (min-width: 821px) {
+  .tabs {
+    display: inline-grid;
+    width: auto;
   }
 }

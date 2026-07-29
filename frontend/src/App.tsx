@@ -31,16 +31,19 @@ export default function App() {
     <div className="app-shell">
       <div className="app">
         <header className="topbar">
-          <div>
+          <div className="topbar__copy">
             <p className="brand">Tech Sphere 2026</p>
             <h1>Agente de voz post-operatorio</h1>
             <p className="lede">
               Seguimiento clínico por conversación, con conocimiento vivo y criterio de alerta.
             </p>
           </div>
-          <div className={`status-pill status-pill--${health.tone}`} title="Estado del API">
+          <div
+            className={`status-pill status-pill--${health.tone}`}
+            title={`Estado del API: ${health.label}`}
+          >
             <span className="status-dot" aria-hidden />
-            {health.label}
+            <span className="status-pill__label">{health.label}</span>
           </div>
         </header>
 
