@@ -94,11 +94,23 @@ export function useCallSession({ onAgentReply }: Options = {}) {
       const res = await endCall(callId);
       setSummary(res);
       setCallId(null);
+      setMessages([]);
+      setInput("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo cerrar la llamada");
     } finally {
       setBusy(false);
     }
+  }
+
+  function reset() {
+    setCallId(null);
+    setMessages([]);
+    setInput("");
+    setSummary(null);
+    setError(null);
+    setListening(false);
+    setBusy(false);
   }
 
   return {
@@ -119,5 +131,6 @@ export function useCallSession({ onAgentReply }: Options = {}) {
     send,
     listenAndSend,
     end,
+    reset,
   };
 }

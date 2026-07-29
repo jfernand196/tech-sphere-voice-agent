@@ -20,7 +20,7 @@ export default function VoiceControls({
   onPreview,
 }: Props) {
   return (
-    <div className="voice-controls">
+    <div className="voice-bar">
       <label className="toggle">
         <input
           type="checkbox"
@@ -28,12 +28,14 @@ export default function VoiceControls({
           onChange={(e) => onVoiceOutChange(e.target.checked)}
           disabled={!speechSupported}
         />
-        Hablar respuestas
+        <span>Hablar respuestas</span>
       </label>
+
       <label className="voice-select">
-        Voz
+        <span className="sr-only">Voz</span>
         <select
           value={voiceName}
+          aria-label="Seleccionar voz"
           disabled={!speechSupported || voices.length === 0}
           onChange={(e) => onVoiceNameChange(e.target.value)}
         >
@@ -48,6 +50,7 @@ export default function VoiceControls({
           )}
         </select>
       </label>
+
       <button
         type="button"
         className="secondary"
