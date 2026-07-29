@@ -65,7 +65,10 @@ export default function CallPanel() {
           <button
             type="button"
             className="danger"
-            onClick={() => void call.end()}
+            onClick={() => {
+              voice.stopAgent();
+              void call.end();
+            }}
             disabled={call.busy}
           >
             Colgar y generar resumen

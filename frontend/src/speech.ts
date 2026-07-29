@@ -43,6 +43,8 @@ const PREFERRED_VOICE_HINTS = [
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
 let speakChain: Promise<void> = Promise.resolve();
+/** Bumped to cancel in-flight multi-chunk TTS (hang up / new utterance). */
+let speakToken = 0;
 
 export function canUseSpeechRecognition(): boolean {
   return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -184,23 +186,34 @@ export type SpeakOptions = {
   voiceName?: string;
 };
 
+export function stopSpeaking(): void {
+  speakToken += 1;
+  if (canUseSpeechSynthesis()) {
+    window.speechSynthesis.cancel();
+  }
+}
+
 export async function speak(text: string, options: SpeakOptions = {}): Promise<void> {
   if (!canUseSpeechSynthesis() || !text.trim()) return;
 
   const lang = options.lang ?? "es-CO";
   const voices = await loadVoices();
   const voice = pickBestSpanishVoice(voices, options.voiceName);
+  const myToken = ++speakToken;
 
   // Chrome sometimes stalls if cancel() isn't followed by a tiny gap
   window.speechSynthesis.cancel();
   await new Promise((r) => window.setTimeout(r, 40));
+  if (myToken !== speakToken) return;
 
   const chunks = splitForSpeech(text);
   speakChain = speakChain
     .catch(() => undefined)
     .then(async () => {
       for (const chunk of chunks) {
+        if (myToken !== speakToken) return;
         await speakChunk(chunk, voice, lang);
+        if (myToken !== speakToken) return;
         await new Promise((r) => window.setTimeout(r, 120));
       }
     });
@@ -215,7 +228,7 @@ export function listenOnce(lang = "es-CO"): Promise<string> {
       return;
     }
     // Pause TTS so recognition isn't fighting the speaker
-    if (canUseSpeechSynthesis()) window.speechSynthesis.cancel();
+    stopSpeaking();
 
     const recognition = new Ctor();
     recognition.lang = lang;

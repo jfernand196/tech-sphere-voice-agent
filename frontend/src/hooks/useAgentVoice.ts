@@ -3,6 +3,7 @@ import {
   canUseSpeechSynthesis,
   listSpanishVoices,
   speak,
+  stopSpeaking,
   type VoiceOption,
 } from "../speech";
 
@@ -37,13 +38,23 @@ export function useAgentVoice() {
     void speak(text, { voiceName: voiceName || undefined, lang: "es-CO" });
   }
 
+  function stopAgent() {
+    stopSpeaking();
+  }
+
+  function setVoiceOutAndMaybeStop(value: boolean) {
+    setVoiceOut(value);
+    if (!value) stopSpeaking();
+  }
+
   return {
     voiceOut,
-    setVoiceOut,
+    setVoiceOut: setVoiceOutAndMaybeStop,
     voices,
     voiceName,
     selectVoice,
     speakAgent,
+    stopAgent,
     speechSupported: canUseSpeechSynthesis(),
   };
 }
