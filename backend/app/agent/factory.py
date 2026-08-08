@@ -8,8 +8,9 @@ from app.agent.llm_mock import MockLLMClient
 from app.config import Settings
 from app.ports import LLMClient
 
-# Allowed families (Tech Sphere G3): Gemini Flash, Llama via Groq, local Llama/Phi.
-# Anthropic / Claude is NOT allowed — using it disqualifies the submission.
+# Challenge rule: only these LLM families (free cloud or local):
+# Gemini Flash, Llama via Groq, local Llama 3.x, local Phi Mini.
+# Anthropic / Claude is not allowed and fails the eliminatory model check.
 
 
 def build_llm_client(settings: Settings) -> LLMClient:
@@ -39,8 +40,8 @@ def build_llm_client(settings: Settings) -> LLMClient:
 
     if provider in {"anthropic", "claude"}:
         raise RuntimeError(
-            "LLM_PROVIDER=anthropic/claude no está permitido en Tech Sphere 2026 "
-            "(compuerta G3). Usa groq (Llama), gemini (Flash), o mock."
+            "LLM_PROVIDER=anthropic/claude is not allowed for this challenge. "
+            "Use groq (Llama), gemini (Flash), or mock."
         )
 
     if provider != "mock":

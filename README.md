@@ -1,56 +1,56 @@
-# Tech Sphere 2026 — Agente de voz post-operatorio
+# Tech Sphere 2026 — Post-operative voice agent
 
-Agente de seguimiento post-operatorio: conversación de voz (navegador), RAG clínico, consola de conocimiento en caliente, citas de fuentes, escalate a humano y resumen estructurado.
+AI voice agent for post-operative follow-up: browser conversation, clinical RAG, hot knowledge console, source citations, escalate-to-human, and structured call summary.
 
-> **Handoff:** lee [`STATUS.md`](./STATUS.md) primero.  
-> **Reglas oficiales:** [`docs/challenge/`](./docs/challenge/) (rúbrica + stack). Kit completo: [TechSphere2026/ParticipantArtifacts](https://github.com/TechSphere2026/ParticipantArtifacts).
+> **Handoff:** start with [`STATUS.md`](./STATUS.md).  
+> **Official rules (Spanish mirrors):** [`docs/challenge/`](./docs/challenge/). Full kit: [TechSphere2026/ParticipantArtifacts](https://github.com/TechSphere2026/ParticipantArtifacts).
 
-## Decisión que más pesa (G3)
+## Allowed language models (hard constraint)
 
-El stack de orquestación/voz/RAG es libre. **El modelo de lenguaje no:**
+Orchestration, voice, and RAG are open choices. **The LLM is not:**
 
-| Permitido (gratis / local) | No permitido |
+| Allowed (free / local) | Not allowed |
 |---|---|
 | Gemini Flash (AI Studio) | Claude / Anthropic |
-| Llama vía Groq | GPT de pago / otros fuera de lista |
-| Llama 3.x 1B–3B o Phi Mini local (Ollama) | |
+| Llama via Groq | Paid GPT / other families |
+| Local Llama 3.x 1B–3B or Phi Mini (Ollama) | |
 
-Usar un modelo fuera de esa lista **descalifica**. Detalle: [`docs/challenge/stack-tecnico.md`](./docs/challenge/stack-tecnico.md).
+Using a model outside that list **disqualifies** the submission. Details: [`docs/challenge/stack-tecnico.md`](./docs/challenge/stack-tecnico.md).
 
-Recomendación de este repo: **Groq + Llama** (latencia para voz). Alternativa: **Gemini Flash** (contexto largo).
+This repo defaults to **Groq + Llama** (low latency for voice). Alternative: **Gemini Flash** (long context).
 
-## Paso 1 — Activar Groq (obligatorio para el reto)
+## Step 1 — Enable Groq
 
-1. Crea una API key gratis en https://console.groq.com/keys  
-2. En `backend/.env` (ya viene con `LLM_PROVIDER=groq`):
+1. Create a free API key at https://console.groq.com/keys  
+2. In `backend/.env` (defaults to `LLM_PROVIDER=groq`):
 
 ```env
 LLM_PROVIDER=groq
 MODEL_ID=llama-3.3-70b-versatile
-GROQ_API_KEY=gsk_tu_key_aqui
+GROQ_API_KEY=gsk_your_key_here
 ```
 
-3. Verifica que el modelo responde:
+3. Verify the model responds:
 
 ```bash
 make smoke-groq
 ```
 
-Debes ver `OK — Groq respondió.` Si dice que falta la key, pégala y reintenta.  
-4. Reinicia el backend. En `GET /health` debe salir `"llm_ready": true` y `"llm_provider": "groq"`.
+You should see `OK — Groq respondió.` If it says the key is missing, paste it and retry.  
+4. Restart the backend. `GET /health` should show `"llm_ready": true` and `"llm_provider": "groq"`.
 
-Sin key, el backend **no** finge estar en Groq (evita entregar en `mock` por error).
+Without a key, the backend **does not** silently fall back to `mock` when `LLM_PROVIDER=groq`.
 
-## Arranque (< 15 min)
+## Quick start (< 15 min)
 
 ```bash
 git clone https://github.com/jfernand196/tech-sphere-voice-agent.git
 cd tech-sphere-voice-agent
 make setup
-# edita backend/.env → GROQ_API_KEY=...
+# edit backend/.env → GROQ_API_KEY=...
 make smoke-groq
 
-# Kit oficial (~127MB, gitignored) — dataset + 107 PDFs clínicos
+# Official kit (~127MB, gitignored) — dataset + clinical PDFs
 make kit-clone
 
 # terminal 1
@@ -60,7 +60,7 @@ make backend    # http://127.0.0.1:8001
 make frontend   # http://127.0.0.1:5173
 ```
 
-Opcional — indexar corpus clínico del kit en el RAG local:
+Optional — index clinical PDFs into the local RAG store:
 
 ```bash
 make ingest-kit ARGS='--scenario cholecystitis --limit 8'
@@ -68,23 +68,23 @@ make ingest-kit ARGS='--scenario cholecystitis --limit 8'
 
 Adapters: `backend/app/agent/llm_groq.py`, `llm_gemini.py`. Factory: `factory.py`.
 
-## Qué incluye
+## What is included
 
-| Módulo | Qué hace |
+| Module | Role |
 |---|---|
-| RAG | Upload `.txt/.md/.pdf`, listar, borrar; retrieval local |
-| Agent | Orquestación + safety + JSON contract |
-| Calls | Historial + resumen al colgar |
-| Voice | Web Speech en el navegador (STT/TTS) |
-| UI | Consola de conocimiento + interfaz de llamada |
+| RAG | Upload `.txt/.md/.pdf`, list, delete; local retrieval |
+| Agent | Orchestration + safety + JSON contract |
+| Calls | History + hang-up summary |
+| Voice | Browser Web Speech (STT/TTS) |
+| UI | Knowledge console + call interface |
 
-## Demo de las 5 piezas
+## Demo checklist
 
-1. **Voz** → pestaña Llamada → Hablar / escuchar.
-2. **RAG** → pregunta clínica; respuesta con `sources`.
-3. **Conocimiento vivo** → sube PDF/txt → pregunta → borra → ya no lo usa.
-4. **Escalate** → “no puedo respirar” / “quiero un doctor”.
-5. **Resumen** → Colgar → JSON + tarjeta.
+1. **Voice** → Call tab → speak / listen.  
+2. **RAG** → clinical question; reply includes `sources`.  
+3. **Live knowledge** → upload PDF/txt → ask again → delete → agent stops using it.  
+4. **Escalate** → “no puedo respirar” / “quiero un doctor”.  
+5. **Summary** → End call → JSON + summary card.
 
 ## Tests
 
@@ -92,7 +92,8 @@ Adapters: `backend/app/agent/llm_groq.py`, `llm_gemini.py`. Factory: `factory.py
 make test
 ```
 
-## Entrega (7–10 ago)
+## Submission requirements
 
-Compuertas: 4 entregables · levantable ≤15 min · modelo permitido · voz realtime · upload/delete conocimiento.  
-Puntos: ver [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).
+Must ship: public repo, architecture diagram, technical report, demo video.  
+Must prove: setup in ≤15 minutes, allowed LLM, realtime voice, upload/delete knowledge from the console.  
+Scoring details: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).

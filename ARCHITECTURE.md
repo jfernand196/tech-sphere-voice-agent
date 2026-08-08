@@ -20,7 +20,7 @@ Ports (Protocol)          ← LLMClient, KnowledgePort
 Adapters                  ← MockLLM / GroqLLM / GeminiLLM (vía PromptedLLMClient), LocalVectorStore
 ```
 
-**G3:** solo familias permitidas (Gemini Flash, Llama/Groq, Llama/Phi local). Ver `docs/challenge/stack-tecnico.md`.
+**Allowed LLMs only:** Gemini Flash, Llama via Groq, or local Llama/Phi Mini. See `docs/challenge/stack-tecnico.md`.
 
 ## SOLID (cómo se aplica)
 

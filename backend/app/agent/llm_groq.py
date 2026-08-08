@@ -1,4 +1,4 @@
-"""Groq LLM adapter — Meta Llama on free tier (allowed family for Tech Sphere G3)."""
+"""Groq LLM adapter — Meta Llama on the free tier (challenge-allowed family)."""
 
 from __future__ import annotations
 

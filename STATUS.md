@@ -1,7 +1,7 @@
 # STATUS — Tech Sphere Voice Agent (handoff for humans & agents)
 
 > **Read this file first** before changing code.  
-> Last updated: **2026-08-08** (paso 1: Groq cableado; falta pegar `GROQ_API_KEY`)  
+> Last updated: **2026-08-08** (Groq wired; recruiter-friendly wording — no gate codes in project docs)  
 > Repo: https://github.com/jfernand196/tech-sphere-voice-agent  
 > Default branch: `main`  
 > Owner GitHub: `jfernand196`  
@@ -34,8 +34,8 @@ Participation implementation for **Tech Sphere Challenge 2026** (Source Meridian
   - Meta **Llama** via **Groq** (free)
   - Meta **Llama 3.x** 1B–3B **local** (Ollama)
   - Microsoft **Phi Mini** 3.5+ **local**
-- Using **Anthropic/Claude or any other family → G3 disqualification**.
-- “Sin Pay-to-Win” is scored in how the jury reads the delivery: free/local models show more engineering.
+- Using **Anthropic/Claude or any other family disqualifies** the submission (eliminatory model check).
+- Free/local models are preferred so the jury scores engineering, not paid model quality.
 
 ### Official data (`make kit-clone`)
 
@@ -67,15 +67,15 @@ Pre-register / portal: https://sourcemeridian.com/tech-sphere-challenge
 
 Mirrors: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).
 
-### Eliminatory gates (binary)
+### Eliminatory checks (binary — official rubric uses numbered labels; we keep plain English here)
 
-| Gate | Requirement |
+| Check | Requirement |
 |---|---|
-| G1 | 4 deliverables: public repo, architecture diagram, technical report, demo video (+ 2 on-camera questions) |
-| G2 | Liftable in **≤15 min** from README alone (creds included) |
-| G3 | **Allowed LLM family only** + declare model + why in informe |
-| G4 | Realtime **voice** works (speak + agent speaks back) |
-| G5 | Hot knowledge from **admin console** (upload used; delete forgotten) |
+| Deliverables | Public repo, architecture diagram, technical report, demo video (+ 2 on-camera questions) |
+| Cold start | Liftable in **≤15 min** from README alone (credentials documented) |
+| Allowed LLM | **Allowed LLM family only** + declare model and rationale in the report |
+| Voice | Realtime **voice** works (user speaks + agent speaks back) |
+| Live knowledge | Hot knowledge from **admin console** (upload is used; delete is forgotten) |
 
 ### Scoring (100 pts)
 
@@ -96,7 +96,7 @@ Asymmetry: **missing an escalate when needed is catastrophic** vs false positive
 
 ### Overall
 
-Working end-to-end MVP with **mock LLM** by default. **Groq (Llama) and Gemini Flash adapters** are wired. Official kit can be cloned and PDF-ingested. Anthropic path is **blocked** in the factory (G3).
+Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Groq verified via `make smoke-groq`). Official kit can be cloned and PDF-ingested. Anthropic is **blocked** in the factory so an allowed LLM is always used.
 
 ### Done ✅
 
@@ -216,7 +216,7 @@ Priority: <fill: groq wire / ingest PDFs / Excel scenarios / metrics / video>.
 
 - [ ] Allowed LLM configured and declared in informe
 - [ ] Official PDFs ingested; citations visible
-- [ ] Gates G1–G5 pass
+- [ ] All eliminatory checks pass (deliverables, cold start, allowed LLM, voice, live knowledge)
 - [ ] README ≤15 min setup + metrics
 - [ ] Diagram + informe + video linked
 - [ ] Public MIT repo; incremental commits

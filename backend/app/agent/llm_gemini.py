@@ -1,4 +1,4 @@
-"""Google Gemini Flash adapter — free AI Studio tier (allowed family for Tech Sphere G3)."""
+"""Google Gemini Flash adapter — free AI Studio tier (challenge-allowed family)."""
 
 from __future__ import annotations
 
