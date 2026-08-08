@@ -16,13 +16,13 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # Allowed: mock | groq | gemini  (see official-kit/docs/stack-tecnico.md)
     llm_provider: str = "mock"
-    model_id: str = "claude-haiku-placeholder"
-    anthropic_api_key: str = ""
-    openai_api_key: str = ""
+    # Suggested defaults: llama-3.3-70b-versatile (Groq) or gemini-2.0-flash
+    model_id: str = "llama-3.3-70b-versatile"
+    groq_api_key: str = ""
+    gemini_api_key: str = ""
 
-    backend_host: str = "0.0.0.0"
-    backend_port: int = 8000
     cors_origins: str = "http://localhost:5173"
 
     data_dir: Path = _BACKEND_ROOT / "data"

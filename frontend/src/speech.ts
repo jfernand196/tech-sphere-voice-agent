@@ -17,7 +17,6 @@ export type VoiceOption = {
   name: string;
   lang: string;
   label: string;
-  score: number;
 };
 
 declare global {
@@ -88,7 +87,7 @@ function scoreVoice(voice: SpeechSynthesisVoice): number {
   return score;
 }
 
-export async function loadVoices(): Promise<SpeechSynthesisVoice[]> {
+async function loadVoices(): Promise<SpeechSynthesisVoice[]> {
   if (!canUseSpeechSynthesis()) return [];
 
   const current = window.speechSynthesis.getVoices();
@@ -116,12 +115,13 @@ export async function listSpanishVoices(): Promise<VoiceOption[]> {
       name: v.name,
       lang: v.lang,
       label: `${v.name} (${v.lang})`,
-      score: scoreVoice(v),
+      _score: scoreVoice(v),
     }))
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b._score - a._score)
+    .map(({ name, lang, label }) => ({ name, lang, label }));
 }
 
-export function pickBestSpanishVoice(
+function pickBestSpanishVoice(
   voices: SpeechSynthesisVoice[],
   preferredName?: string,
 ): SpeechSynthesisVoice | null {
@@ -135,7 +135,7 @@ export function pickBestSpanishVoice(
 }
 
 /** Soften text for TTS: less “robot reading a protocol”. */
-export function prepareSpokenText(text: string): string {
+function prepareSpokenText(text: string): string {
   return text
     .replace(/\b(\d+)\.(\d+)\s*°?\s*C\b/gi, "$1 coma $2 grados")
     .replace(/\b(\d+)\s*°?\s*C\b/gi, "$1 grados")
@@ -181,7 +181,7 @@ function speakChunk(
   });
 }
 
-export type SpeakOptions = {
+type SpeakOptions = {
   lang?: string;
   voiceName?: string;
 };

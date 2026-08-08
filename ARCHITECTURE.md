@@ -17,16 +17,18 @@ Use-cases                 ← AgentService, CallService, KnowledgeService
 Ports (Protocol)          ← LLMClient, KnowledgePort
         │
         ▼
-Adapters                  ← MockLLM / AnthropicLLM, LocalVectorStore
+Adapters                  ← MockLLM / GroqLLM / GeminiLLM (vía PromptedLLMClient), LocalVectorStore
 ```
+
+**Allowed LLMs only:** Gemini Flash, Llama via Groq, or local Llama/Phi Mini. See `docs/challenge/stack-tecnico.md`.
 
 ## SOLID (cómo se aplica)
 
 | Principio | Aplicación |
 |---|---|
-| **S**ingle Responsibility | `safety.py` (escalate), `parsing.py` (JSON/sources), `llm_*` (providers), hooks FE por concern |
-| **O**pen/Closed | Nuevo LLM = nuevo adapter + rama en `factory.py`; `AgentService` no cambia |
-| **L**iskov | `MockLLMClient` y `AnthropicLLMClient` cumplen el mismo contrato `LLMClient` |
+| **S**ingle Responsibility | `safety.py` (escalate), `parsing.py` (JSON/sources), `llm_*` (HTTP provider), hooks FE por concern |
+| **O**pen/Closed | Nuevo LLM = subclase de `PromptedLLMClient` + rama en `factory.py`; `AgentService` no cambia |
+| **L**iskov | `MockLLMClient` y subclases de `PromptedLLMClient` cumplen `LLMClient` |
 | **I**nterface Segregation | Ports chicos (`LLMClient`, `KnowledgePort`), no god-interfaces |
 | **D**ependency Inversion | `AgentService` depende de Protocols; el wiring está en `api/deps.py` |
 

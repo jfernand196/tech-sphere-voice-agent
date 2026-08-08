@@ -1,106 +1,99 @@
-# Tech Sphere 2026 — Agente de voz post-operatorio (scaffold)
+# Tech Sphere 2026 — Post-operative voice agent
 
-Scaffold para el **Tech Sphere Challenge 2026**: agente de seguimiento post-operatorio con conversación (texto + voz en navegador), RAG clínico, consola de conocimiento en caliente, trazabilidad de fuentes, lógica de escalate y resumen estructurado de llamada.
+AI voice agent for post-operative follow-up: browser conversation, clinical RAG, hot knowledge console, source citations, escalate-to-human, and structured call summary.
 
-> **Handoff completo para humanos y agentes LLM:** lee [`STATUS.md`](./STATUS.md) primero (contexto del reto, hecho/pendiente, contratos, plan).  
-> Instrucciones cortas para agents: [`AGENTS.md`](./AGENTS.md).
+> **Handoff:** start with [`STATUS.md`](./STATUS.md).  
+> **Official rules (Spanish mirrors):** [`docs/challenge/`](./docs/challenge/). Full kit: [TechSphere2026/ParticipantArtifacts](https://github.com/TechSphere2026/ParticipantArtifacts).
 
-> Stack libre. El **LLM es único y obligatorio** (se anuncia el 7 de agosto). Hoy corre en modo `mock` para que puedas desarrollar sin API key.
+## Allowed language models (hard constraint)
 
-## Qué incluye
+Orchestration, voice, and RAG are open choices. **The LLM is not:**
 
-| Módulo | Ruta | Qué hace |
-|---|---|---|
-| Config | `backend/app/config.py` | `MODEL_ID` / provider vía env |
-| Ports | `backend/app/ports.py` | Contratos `LLMClient` / `KnowledgePort` (DIP) |
-| RAG | `backend/app/rag/` | Subir / buscar / borrar docs (vector store local) |
-| Agent | `backend/app/agent/` | Orquestación + adapters LLM + safety/parsing |
-| Calls | `backend/app/calls/` | Historial + resumen al colgar |
-| Voice | `backend/app/voice/` | Seam para STT/TTS server-side (MVP usa browser) |
-| UI | `frontend/src/` | Hooks + componentes (llamada / conocimiento) |
+| Allowed (free / local) | Not allowed |
+|---|---|
+| Gemini Flash (AI Studio) | Claude / Anthropic |
+| Llama via Groq | Paid GPT / other families |
+| Local Llama 3.x 1B–3B or Phi Mini (Ollama) | |
 
-Arquitectura y mapeo SOLID: ver [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+Using a model outside that list **disqualifies** the submission. Details: [`docs/challenge/stack-tecnico.md`](./docs/challenge/stack-tecnico.md).
 
-```bash
-make test   # pytest (safety rules)
-```
+This repo defaults to **Groq + Llama** (low latency for voice). Alternative: **Gemini Flash** (long context).
 
-## Requisitos
+## Step 1 — Enable Groq
 
-- Python 3.9+ (recomendado 3.11+)
-- Node.js 20+
-- Chrome/Edge recomendado para micrófono (Web Speech API)
-
-## Arranque (< 15 min)
-
-```bash
-cd tech-sphere-voice-agent
-make setup
-
-# terminal 1 — API en 8001 (8000 suele estar ocupado por otras apps locales)
-make backend
-
-# terminal 2
-make frontend
-```
-
-- API: http://127.0.0.1:8001/docs  
-- UI: http://127.0.0.1:5173  
-
-Si cambias el puerto del backend: `VITE_API_TARGET=http://127.0.0.1:PUERTO npm run dev`
-
-Al iniciar, se siembra un protocolo genérico de ejemplo si no hay documentos.
-
-## Demo rápida de las 5 piezas del reto
-
-1. **Conversación adaptativa** → pestaña *Llamada* → Iniciar → escribe o usa *Hablar*.
-2. **RAG** → pregunta por fiebre / herida; la respuesta cita el protocolo.
-3. **Conocimiento en caliente** → pestaña *Conocimiento* → sube un `.txt` → vuelve a preguntar → cita el nuevo doc → elimínalo → ya no lo usa.
-4. **Trazabilidad** → cada respuesta del agente lista `sources` (doc + chunk).
-5. **Escalate + resumen** → di “no puedo respirar” o “quiero un doctor” → alerta → *Colgar* → JSON de resumen.
-
-## Configurar el LLM obligatorio (7 ago)
-
-Copia `.env.example` a `backend/.env` y ajusta:
+1. Create a free API key at https://console.groq.com/keys  
+2. In `backend/.env` (defaults to `LLM_PROVIDER=groq`):
 
 ```env
-LLM_PROVIDER=anthropic
-MODEL_ID=<el-modelo-de-la-ficha-tecnica>
-ANTHROPIC_API_KEY=sk-ant-...
+LLM_PROVIDER=groq
+MODEL_ID=llama-3.3-70b-versatile
+GROQ_API_KEY=gsk_your_key_here
 ```
 
-El cliente Anthropic ya está cableado en `backend/app/agent/service.py`. Si el provider obligatorio es otro, cambia solo esa capa — el contrato JSON del agente no cambia.
+3. Verify the model responds:
 
-## API principal
-
-- `GET /health`
-- `POST /calls/start`
-- `POST /calls/{id}/turn` `{ "call_id", "message" }`
-- `POST /calls/{id}/end`
-- `GET/POST/DELETE /knowledge/documents`
-- `POST /knowledge/query`
-- `GET /voice/capabilities`
-
-## Contrato del agente (cada turno)
-
-```json
-{
-  "reply": "...",
-  "sources": [{"doc_id":"...","title":"...","chunk_id":"...","excerpt":"..."}],
-  "patient_state": {"symptoms": [], "severity": "none|mild|moderate|severe"},
-  "escalate": false,
-  "escalate_reason": null
-}
+```bash
+make smoke-groq
 ```
 
-## Roadmap sugerido (3 días del challenge)
+You should see `OK — Groq respondió.` If it says the key is missing, paste it and retry.  
+4. Restart the backend. `GET /health` should show `"llm_ready": true` and `"llm_provider": "groq"`.
 
-1. Conectar dataset (Delta Share) + reemplazar seed.
-2. Endurecer RAG (pgvector/Chroma) y parseo PDF.
-3. STT/TTS server-side si el browser no alcanza latencia.
-4. Métricas P50/P95, tokens y costo en README.
-5. Diagrama, informe, video demo; prueba de cold start &lt; 15 min.
+Without a key, the backend **does not** silently fall back to `mock` when `LLM_PROVIDER=groq`.
 
-## Licencia
+## Quick start (< 15 min)
 
-MIT (alineada con la entrega del challenge).
+```bash
+git clone https://github.com/jfernand196/tech-sphere-voice-agent.git
+cd tech-sphere-voice-agent
+make setup
+# edit backend/.env → GROQ_API_KEY=...
+make smoke-groq
+
+# Official kit (~127MB, gitignored) — dataset + clinical PDFs
+make kit-clone
+
+# terminal 1
+make backend    # http://127.0.0.1:8001
+
+# terminal 2
+make frontend   # http://127.0.0.1:5173
+```
+
+Optional — index clinical PDFs into the local RAG store:
+
+```bash
+make ingest-kit ARGS='--scenario cholecystitis --limit 8'
+```
+
+Adapters: `backend/app/agent/llm_groq.py`, `llm_gemini.py`. Factory: `factory.py`.
+
+## What is included
+
+| Module | Role |
+|---|---|
+| RAG | Upload `.txt/.md/.pdf`, list, delete; local retrieval |
+| Agent | Orchestration + safety + JSON contract |
+| Calls | History + hang-up summary |
+| Voice | Browser Web Speech (STT/TTS) |
+| UI | Knowledge console + call interface |
+
+## Demo checklist
+
+1. **Voice** → Call tab → speak / listen.  
+2. **RAG** → clinical question; reply includes `sources`.  
+3. **Live knowledge** → upload PDF/txt → ask again → delete → agent stops using it.  
+4. **Escalate** → “no puedo respirar” / “quiero un doctor”.  
+5. **Summary** → End call → JSON + summary card.
+
+## Tests
+
+```bash
+make test
+```
+
+## Submission requirements
+
+Must ship: public repo, architecture diagram, technical report, demo video.  
+Must prove: setup in ≤15 minutes, allowed LLM, realtime voice, upload/delete knowledge from the console.  
+Scoring details: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).

@@ -16,9 +16,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function getHealth() {
-  return request<{ status: string; model_id: string; llm_provider: string }>(
-    "/health",
-  );
+  return request<{
+    status: string;
+    model_id: string;
+    llm_provider: string;
+    llm_ready?: boolean;
+    llm_detail?: string;
+  }>("/health");
 }
 
 export function startCall(patient_name: string, procedure: string) {

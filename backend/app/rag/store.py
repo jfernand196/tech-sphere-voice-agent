@@ -104,8 +104,7 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 80) -> List[str]
 
 
 class LocalVectorStore:
-    def __init__(self, data_dir: Path, documents_path: Path, vector_dir: Path) -> None:
-        self.data_dir = data_dir
+    def __init__(self, documents_path: Path, vector_dir: Path) -> None:
         self.documents_path = documents_path
         self.chunks_path = vector_dir / "chunks.json"
         self._documents: Dict[str, DocumentRecord] = {}

@@ -19,6 +19,13 @@ export default function App() {
           setHealth({ label: "backend incorrecto", tone: "warn" });
           return;
         }
+        if (h.llm_ready === false) {
+          setHealth({
+            label: h.llm_detail || "falta API key del LLM",
+            tone: "warn",
+          });
+          return;
+        }
         setHealth({
           label: `${h.llm_provider} · ${h.model_id}`,
           tone: "ok",
@@ -31,7 +38,7 @@ export default function App() {
     <div className="app-shell">
       <div className="app">
         <header className="topbar">
-          <div className="topbar__copy">
+          <div>
             <p className="brand">Tech Sphere 2026</p>
             <h1>Agente de voz post-operatorio</h1>
             <p className="lede">

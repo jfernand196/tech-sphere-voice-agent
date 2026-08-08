@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from app.agent.safety import severity_rank
 from app.schemas import (
     AgentTurnResponse,
     CallMessage,
@@ -96,7 +97,7 @@ class CallService:
                 for s in msg.patient_state.symptoms:
                     if s not in symptoms:
                         symptoms.append(s)
-                if _severity_rank(msg.patient_state.severity) > _severity_rank(severity):
+                if severity_rank(msg.patient_state.severity) > severity_rank(severity):
                     severity = msg.patient_state.severity
             if msg.escalate:
                 escalate = True
@@ -156,13 +157,3 @@ class CallService:
             f"tras {record.procedure}. Síntomas: {symptom_txt}. "
             f"Severidad estimada: {severity.value}. Alerta a humano: {alert}.{reason}"
         )
-
-
-def _severity_rank(value: Severity) -> int:
-    order = {
-        Severity.none: 0,
-        Severity.mild: 1,
-        Severity.moderate: 2,
-        Severity.severe: 3,
-    }
-    return order.get(value, 0)
