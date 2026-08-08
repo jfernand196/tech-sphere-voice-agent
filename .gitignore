@@ -16,6 +16,10 @@ backend/data/vector_store/*
 backend/data/calls.json
 backend/data/documents.json
 
+# Official challenge kit (~127MB dataset+PDFs). Clone locally; do not commit.
+# make kit-clone  →  ./official-kit
+official-kit/
+
 # Node
 frontend/node_modules/
 frontend/dist/

@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Optional
 
 from app.config import Settings
-from app.rag.store import LocalVectorStore
+from app.rag.extract import extract_text
+from app.rag.store import DocumentRecord, LocalVectorStore
 from app.schemas import DocumentInfo, KnowledgeChunk
 
 
@@ -12,23 +13,12 @@ class KnowledgeService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.store = LocalVectorStore(
-            data_dir=settings.data_dir,
             documents_path=settings.documents_path,
             vector_dir=settings.vector_store_dir,
         )
 
     def list_documents(self) -> list[DocumentInfo]:
-        return [
-            DocumentInfo(
-                doc_id=d.doc_id,
-                title=d.title,
-                filename=d.filename,
-                chunk_count=d.chunk_count,
-                created_at=d.created_at,
-                metadata=d.metadata,
-            )
-            for d in self.store.list_documents()
-        ]
+        return [self._to_info(d) for d in self.store.list_documents()]
 
     def ingest_text(
         self,
@@ -44,17 +34,15 @@ class KnowledgeService:
             text=text,
             metadata=metadata,
         )
-        return DocumentInfo(
-            doc_id=record.doc_id,
-            title=record.title,
-            filename=record.filename,
-            chunk_count=record.chunk_count,
-            created_at=record.created_at,
-            metadata=record.metadata,
-        )
+        return self._to_info(record)
 
     def ingest_upload(self, *, title: str, filename: str, content: bytes) -> DocumentInfo:
-        text = content.decode("utf-8", errors="ignore")
+        text = extract_text(filename, content)
+        if len(text.strip()) < 20:
+            raise ValueError(
+                f"No se pudo extraer texto útil de '{filename}'. "
+                "Usa PDF con texto seleccionable, o .txt/.md."
+            )
         dest = self.settings.uploads_dir / filename
         # Avoid overwrite collisions
         if dest.exists():
@@ -66,7 +54,7 @@ class KnowledgeService:
             title=title or Path(filename).stem,
             filename=dest.name,
             text=text,
-            metadata={"path": str(dest)},
+            metadata={"path": str(dest), "content_type": Path(filename).suffix.lower()},
         )
 
     def delete(self, doc_id: str) -> bool:
@@ -92,3 +80,14 @@ class KnowledgeService:
             )
             for chunk, score in hits
         ]
+
+    @staticmethod
+    def _to_info(record: DocumentRecord) -> DocumentInfo:
+        return DocumentInfo(
+            doc_id=record.doc_id,
+            title=record.title,
+            filename=record.filename,
+            chunk_count=record.chunk_count,
+            created_at=record.created_at,
+            metadata=record.metadata,
+        )

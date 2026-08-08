@@ -1,10 +1,8 @@
 :root {
-  --bg0: #eef3f8;
   --bg1: #f7f9fc;
   --ink: #0f1b2d;
   --muted: #5b6b7c;
   --panel: rgba(255, 255, 255, 0.92);
-  --panel-solid: #ffffff;
   --line: #d7e0ea;
   --accent: #0b4f8c;
   --accent-soft: #e5f0fa;
@@ -459,8 +457,7 @@ button:focus-visible,
   line-height: 1.45;
 }
 
-.chip-row,
-.sources-row {
+.chip-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;

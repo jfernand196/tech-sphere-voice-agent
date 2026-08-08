@@ -26,7 +26,7 @@ export default function KnowledgeConsole() {
   function takeFile(next: File | null) {
     setFile(next);
     if (next && !title.trim()) {
-      setTitle(next.name.replace(/\.(txt|md|text)$/i, ""));
+      setTitle(next.name.replace(/\.(txt|md|text|pdf)$/i, ""));
     }
   }
 
@@ -65,7 +65,7 @@ export default function KnowledgeConsole() {
   }
 
   return (
-    <section className="panel panel--knowledge">
+    <section className="panel">
       <header className="panel-header">
         <div>
           <h2>Consola de conocimiento</h2>
@@ -104,12 +104,12 @@ export default function KnowledgeConsole() {
               if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
             }}
           >
-            <strong>{file ? file.name : "Arrastra un .txt o .md"}</strong>
+            <strong>{file ? file.name : "Arrastra un .txt, .md o .pdf"}</strong>
             <span>{file ? "Clic para cambiar archivo" : "o haz clic para elegir"}</span>
             <input
               ref={inputRef}
               type="file"
-              accept=".txt,.md,.text"
+              accept=".txt,.md,.text,.pdf,application/pdf"
               hidden
               onChange={(e) => takeFile(e.target.files?.[0] ?? null)}
             />

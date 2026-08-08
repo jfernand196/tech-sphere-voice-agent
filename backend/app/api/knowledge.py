@@ -23,11 +23,14 @@ async def upload_document(
     content = await file.read()
     if not content:
         raise HTTPException(status_code=400, detail="Empty file")
-    return get_knowledge_service().ingest_upload(
-        title=title or (file.filename or "documento"),
-        filename=file.filename or "documento.txt",
-        content=content,
-    )
+    try:
+        return get_knowledge_service().ingest_upload(
+            title=title or (file.filename or "documento"),
+            filename=file.filename or "documento.txt",
+            content=content,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.delete("/documents/{doc_id}")

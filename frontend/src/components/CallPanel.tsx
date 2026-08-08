@@ -24,7 +24,7 @@ export default function CallPanel() {
   }
 
   return (
-    <section className={`panel panel--call phase-${phase}`}>
+    <section className="panel">
       <header className="panel-header">
         <div>
           <div className="title-row">

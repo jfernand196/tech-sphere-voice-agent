@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,12 +58,8 @@ def seed_sample_knowledge() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    s = settings()
-    s.data_dir.mkdir(parents=True, exist_ok=True)
-    s.uploads_dir.mkdir(parents=True, exist_ok=True)
-    s.vector_store_dir.mkdir(parents=True, exist_ok=True)
-    # Ensure relative data paths resolve from backend/
-    Path(s.data_dir).mkdir(parents=True, exist_ok=True)
+    # Dirs are created in get_settings(); lifespan only seeds knowledge.
+    _ = settings()
     seed_sample_knowledge()
     yield
 
