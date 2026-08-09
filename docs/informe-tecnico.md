@@ -44,7 +44,7 @@ Ver diagrama completo en [`ARCHITECTURE.md`](../ARCHITECTURE.md). Resumen:
 |---|---|---|
 | Orquestación | FastAPI use-cases + ports/adapters | `backend/app/agent/`, `ports.py` |
 | Voz | Web Speech API en el browser (STT + TTS) | `frontend/src/speech.ts` |
-| RAG | Store local, upload/delete en caliente, PDF | `backend/app/rag/` |
+| RAG | Store local hybrid (hash-cosine + BM25 → RRF), upload/delete, PDF | `backend/app/rag/store.py` |
 | Escalate | Prompt + **guardrails post-LLM** (autoritativos) | `prompts.py` + `safety.py` |
 | Persistencia de llamadas | JSON en `DATA_DIR` | `backend/app/calls/` |
 

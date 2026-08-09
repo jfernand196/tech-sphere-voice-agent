@@ -1,7 +1,7 @@
 # STATUS — Tech Sphere Voice Agent (handoff for humans & agents)
 
 > **Read this file first** before changing code.  
-> Last updated: **2026-08-08** (step 6b: video recording script for deliverable 04)  
+> Last updated: **2026-08-08** (hybrid BM25 + hash-cosine RAG retrieval)  
 > Repo: https://github.com/jfernand196/tech-sphere-voice-agent  
 > Default branch: `main`  
 > Owner GitHub: `jfernand196`  
@@ -119,7 +119,7 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | Area | Gap |
 |---|---|
 | LLM in demo | **Groq OK** (`make smoke-groq` pasó con `llama-3.3-70b-versatile`) |
-| RAG quality | **17 cholecystitis PDFs ingested** (~2k chunks); still hash embeddings (not BGE-M3/Chroma) |
+| RAG quality | **17 cholecystitis PDFs ingested**; **hybrid BM25 + hash-cosine (RRF)**; not BGE-M3/Chroma |
 | Dataset Excel | **12 demo cases** in UI; **`make eval-escalate`** scores escalate vs verde/amarillo/rojo |
 | Voice | Browser only; Kokoro/Piper / Groq Whisper not wired |
 | Metrics | README reports agent-turn P50/P95 from Groq eval; tokens not rolled up yet |
