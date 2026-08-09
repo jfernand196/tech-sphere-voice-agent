@@ -1,7 +1,7 @@
 # STATUS — Tech Sphere Voice Agent (handoff for humans & agents)
 
 > **Read this file first** before changing code.  
-> Last updated: **2026-08-08** (step 6a: architecture diagram + technical report draft)  
+> Last updated: **2026-08-08** (step 6b: video recording script for deliverable 04)  
 > Repo: https://github.com/jfernand196/tech-sphere-voice-agent  
 > Default branch: `main`  
 > Owner GitHub: `jfernand196`  
@@ -123,15 +123,14 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | Dataset Excel | **12 demo cases** in UI; **`make eval-escalate`** scores escalate vs verde/amarillo/rojo |
 | Voice | Browser only; Kokoro/Piper / Groq Whisper not wired |
 | Metrics | README reports agent-turn P50/P95 from Groq eval; tokens not rolled up yet |
-| Deliverables | Diagram + informe drafted; **screenshots + video** still missing |
+| Deliverables | Diagram + informe + **video script** done; **record video** + optional screenshots |
 
 ### Must finish before submit ❌
 
-1. Configure **allowed** LLM (`GROQ_API_KEY` or Gemini) and prove it in video.
-2. Drop demo **screenshots** into `docs/captures/` and link them in the informe §9.
-3. ~~Cold-start README~~ / ~~diagram~~ / ~~informe draft~~ — done; rehearse lift once with a stopwatch.
-4. **Video** demo + 2 on-camera answers (entregable 04).
-5. Optional: token rollup in logs; BGE-M3 + Chroma; Piper/Kokoro.
+1. **Record video** following [`docs/guion-video.md`](./docs/guion-video.md); upload link to portal.
+2. Optional: drop screenshots into `docs/captures/` for informe §9.
+3. Rehearse cold start once with a stopwatch.
+4. Optional polish: token rollup; BGE-M3 + Chroma; Piper/Kokoro.
 
 ---
 
@@ -196,10 +195,10 @@ Demo script: voice call → clinical question cites PDF → upload/delete custom
 
 ## 9. Work plan (now → 10 ago)
 
-1. ~~Core build + eval + cold-start README + diagram + informe draft~~
-2. Add UI screenshots to `docs/captures/`; link in informe §9.
-3. Record video + 2 camera answers; rehearse cold start with a stopwatch.
-4. Optional: expose token usage in turn logs for README §5 completeness.
+1. ~~Build + docs + video script~~
+2. **You:** record + upload video (`docs/guion-video.md`).
+3. Optional screenshots; stopwatch cold-start rehearsal.
+4. Optional: token usage rollup in logs.
 
 ### Prompt for a new Cursor chat
 
@@ -222,4 +221,4 @@ Priority: <fill: groq wire / ingest PDFs / Excel scenarios / metrics / video>.
 - [x] Public MIT repo; incremental commits
 - [ ] Hot knowledge + escalate proven on video
 
-Until video + captures: **not final submission**.
+Until video is recorded and linked: **not final submission**.
