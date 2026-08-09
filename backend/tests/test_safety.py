@@ -15,6 +15,14 @@ def test_assess_message_fever_is_moderate_by_default():
     assert "fiebre" in result.symptoms
 
 
+def test_assess_message_fever_plus_purulent_wound_escalates():
+    result = assess_message(
+        "Temperatura como de 38 grados. La herida la veo con secreción purulenta."
+    )
+    assert result.escalate is True
+    assert result.severity == Severity.severe
+
+
 def test_safety_override_forces_escalate_for_severe_keywords():
     state = PatientState(symptoms=[], severity=Severity.mild)
     escalate, reason, updated = apply_safety_overrides(
@@ -26,3 +34,16 @@ def test_safety_override_forces_escalate_for_severe_keywords():
     assert escalate is True
     assert reason
     assert updated.severity == Severity.severe
+
+
+def test_safety_override_forces_escalate_for_doctor_request():
+    state = PatientState(symptoms=[], severity=Severity.mild)
+    escalate, reason, updated = apply_safety_overrides(
+        "quiero un doctor ahora",
+        escalate=False,
+        escalate_reason=None,
+        patient_state=state,
+    )
+    assert escalate is True
+    assert reason
+    assert updated.severity == Severity.moderate
