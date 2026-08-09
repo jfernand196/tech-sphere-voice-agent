@@ -39,7 +39,7 @@ flowchart LR
 | Factory | `backend/app/agent/factory.py` |
 | Safety | `backend/app/agent/safety.py` |
 | Prompts | `backend/app/agent/prompts.py` |
-| RAG store | `backend/app/rag/store.py` |
+| RAG store | `backend/app/rag/store.py` (hash cosine + BM25 → RRF hybrid) |
 
 **Allowed LLM only:** Gemini Flash · Llama via Groq · local Llama/Phi. Anthropic is rejected in `factory.py`.
 
@@ -109,10 +109,10 @@ Calibrated with `make eval-escalate` against kit verde/amarillo/rojo labels.
 ```mermaid
 flowchart LR
   Upload["UI upload<br/>.txt / .md / .pdf"] --> Ingest["KnowledgeService.ingest"]
-  Ingest --> Chunk["chunk + embed<br/>LocalVectorStore"]
+  Ingest --> Chunk["chunk + hash embed<br/>LocalVectorStore"]
   Chunk --> Index[(vector_store)]
-  Ask["Patient question"] --> Retrieve["retrieve top_k"]
-  Retrieve --> Index
+  Ask["Patient question"] --> Hybrid["hybrid search<br/>cosine + BM25 → RRF"]
+  Hybrid --> Index
   Delete["UI delete doc"] --> Drop["KnowledgeService.delete"]
   Drop --> Index
 ```
