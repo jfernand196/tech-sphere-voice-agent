@@ -79,6 +79,53 @@ select {
   margin-bottom: 1.25rem;
 }
 
+.topbar__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
+.agent-note {
+  margin: 0.45rem 0 0;
+  max-width: 34rem;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.locale-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.locale-toggle__btn {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0.28rem 0.7rem;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  min-height: 0;
+  box-shadow: none;
+}
+
+.locale-toggle__btn:hover {
+  background: rgba(15, 106, 91, 0.06);
+  transform: none;
+}
+
+.locale-toggle__btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
 .brand {
   margin: 0;
   font-size: 0.78rem;
@@ -966,6 +1013,14 @@ button:focus-visible,
   .topbar {
     gap: 0.75rem;
     margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .topbar__aside {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .lede {

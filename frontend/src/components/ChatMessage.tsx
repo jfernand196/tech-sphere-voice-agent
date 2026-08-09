@@ -1,4 +1,5 @@
 import { severityChip } from "../clinicalFormat";
+import { useLocale } from "../i18n/LocaleContext";
 import { displayDocTitle } from "../knowledgeFormat";
 import type { ChatItem } from "../types";
 
@@ -7,19 +8,20 @@ type Props = {
 };
 
 function MetaBits({ message }: { message: ChatItem }) {
+  const { t } = useLocale();
   const bits: { title: string; text: string }[] = [];
   if (typeof message.e2e_latency_ms === "number") {
     bits.push({
-      title: "Voz→voz (fin habla → audio agente)",
+      title: t("chat.e2eTitle"),
       text: `e2e ${message.e2e_latency_ms} ms`,
     });
   }
   if (typeof message.latency_ms === "number") {
-    bits.push({ title: "Solo backend (RAG+LLM)", text: `api ${message.latency_ms} ms` });
+    bits.push({ title: t("chat.apiTitle"), text: `api ${message.latency_ms} ms` });
   }
   if (typeof message.tokens_in === "number" && typeof message.tokens_out === "number") {
     bits.push({
-      title: "Tokens in / out",
+      title: t("chat.tokTitle"),
       text: `tok ${message.tokens_in}/${message.tokens_out}`,
     });
   }
@@ -35,13 +37,14 @@ function MetaBits({ message }: { message: ChatItem }) {
 }
 
 export default function ChatMessage({ message }: Props) {
+  const { t } = useLocale();
   const isAgent = message.role === "agent";
-  const severity = severityChip(message.patient_state?.severity);
+  const severity = severityChip(message.patient_state?.severity, t);
 
   return (
     <article className={`bubble ${message.role}`}>
       <header className="bubble__meta">
-        <strong>{isAgent ? "Agente" : "Paciente"}</strong>
+        <strong>{isAgent ? t("chat.agent") : t("chat.patient")}</strong>
         {severity ? (
           <span className={`sev-chip sev-chip--${message.patient_state?.severity}`}>
             {severity}
@@ -51,7 +54,11 @@ export default function ChatMessage({ message }: Props) {
       </header>
       <p>{message.content}</p>
       {message.escalate ? (
-        <div className="alert">Alerta humana — {message.escalate_reason || "revisar caso"}</div>
+        <div className="alert">
+          {t("chat.escalate", {
+            reason: message.escalate_reason || t("chat.escalateFallback"),
+          })}
+        </div>
       ) : null}
       {message.sources && message.sources.length > 0 ? (
         <ul className="chip-row">

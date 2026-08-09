@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { deleteDocument, listDocuments, uploadDocument } from "../api";
 import { errMessage } from "../errors";
+import { useLocale } from "../i18n/LocaleContext";
 import {
   displayDocTitle,
   docGroup,
@@ -13,6 +14,7 @@ import type { DocumentInfo } from "../types";
 const GROUP_ORDER: DocGroup[] = ["uploaded", "kit", "seed"];
 
 export default function KnowledgeConsole() {
+  const { t } = useLocale();
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -30,8 +32,8 @@ export default function KnowledgeConsole() {
   }
 
   useEffect(() => {
-    void refresh().catch((e) => setError(errMessage(e, "Error cargando documentos")));
-  }, []);
+    void refresh().catch((e) => setError(errMessage(e, t("knowledge.errorLoad"))));
+  }, [t]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -69,14 +71,17 @@ export default function KnowledgeConsole() {
     try {
       const doc = await uploadDocument(file, title || file.name);
       setMessage(
-        `Indexado: ${displayDocTitle(doc.title, 48)} · ${fragmentLabel(doc.chunk_count)}`,
+        t("knowledge.indexed", {
+          title: displayDocTitle(doc.title, 48),
+          fragments: fragmentLabel(doc.chunk_count, t),
+        }),
       );
       setFile(null);
       setTitle("");
       if (inputRef.current) inputRef.current.value = "";
       await refresh();
     } catch (e) {
-      setError(errMessage(e, "Error al subir"));
+      setError(errMessage(e, t("knowledge.errorUpload")));
     } finally {
       setBusy(false);
     }
@@ -84,7 +89,7 @@ export default function KnowledgeConsole() {
 
   async function handleDelete(doc: DocumentInfo) {
     const short = displayDocTitle(doc.title, 40);
-    if (!window.confirm(`¿Eliminar “${short}”? El agente dejará de usarlo.`)) {
+    if (!window.confirm(t("knowledge.confirmDelete", { title: short }))) {
       return;
     }
     setBusy(true);
@@ -92,10 +97,10 @@ export default function KnowledgeConsole() {
     setMessage(null);
     try {
       await deleteDocument(doc.doc_id);
-      setMessage("Documento eliminado. El agente ya no lo usará en caliente.");
+      setMessage(t("knowledge.deleted"));
       await refresh();
     } catch (e) {
-      setError(errMessage(e, "Error al eliminar"));
+      setError(errMessage(e, t("knowledge.errorDelete")));
     } finally {
       setBusy(false);
     }
@@ -111,9 +116,11 @@ export default function KnowledgeConsole() {
           <h3 title={d.title}>{displayDocTitle(d.title)}</h3>
           <p>
             {scenario ? <span className="doc-tag">{scenario}</span> : null}
-            {group === "seed" ? <span className="doc-tag">base</span> : null}
+            {group === "seed" ? (
+              <span className="doc-tag">{t("knowledge.tagBase")}</span>
+            ) : null}
             <span>
-              {fragmentLabel(d.chunk_count)} · <code>{d.filename}</code>
+              {fragmentLabel(d.chunk_count, t)} · <code>{d.filename}</code>
             </span>
           </p>
         </div>
@@ -123,7 +130,7 @@ export default function KnowledgeConsole() {
           onClick={() => void handleDelete(d)}
           disabled={busy}
         >
-          Eliminar
+          {t("knowledge.delete")}
         </button>
       </article>
     );
@@ -133,25 +140,21 @@ export default function KnowledgeConsole() {
     <section className="panel">
       <header className="panel-header">
         <div>
-          <h2>Consola de conocimiento</h2>
-          <p>
-            Sube un protocolo de prueba: el agente lo usa al instante. Elimínalo y lo olvida.
-          </p>
+          <h2>{t("knowledge.title")}</h2>
+          <p>{t("knowledge.lede")}</p>
         </div>
-        <span className="count-pill">{docs.length} docs</span>
+        <span className="count-pill">{t("knowledge.docsCount", { n: docs.length })}</span>
       </header>
 
       <div className="knowledge-layout">
         <div className="upload-card">
-          <p className="upload-card__lead">
-            Para el jurado: sube un .txt/.pdf propio, pregunta en la llamada y luego elimínalo.
-          </p>
+          <p className="upload-card__lead">{t("knowledge.juryTip")}</p>
           <label>
-            Título
+            {t("knowledge.docTitle")}
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Protocolo herida quirúrgica"
+              placeholder={t("knowledge.titlePlaceholder")}
             />
           </label>
 
@@ -174,8 +177,8 @@ export default function KnowledgeConsole() {
               if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
             }}
           >
-            <strong>{file ? file.name : "Arrastra un .txt, .md o .pdf"}</strong>
-            <span>{file ? "Clic para cambiar archivo" : "o haz clic para elegir"}</span>
+            <strong>{file ? file.name : t("knowledge.dropEmpty")}</strong>
+            <span>{file ? t("knowledge.dropChange") : t("knowledge.dropHint")}</span>
             <input
               ref={inputRef}
               type="file"
@@ -191,28 +194,24 @@ export default function KnowledgeConsole() {
             onClick={() => void handleUpload()}
             disabled={busy || !file}
           >
-            Subir e indexar
+            {t("knowledge.upload")}
           </button>
         </div>
 
         <div className="docs-panel">
           <label className="docs-search">
-            <span className="sr-only">Buscar documentos</span>
+            <span className="sr-only">{t("knowledge.searchAria")}</span>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por título o archivo…"
+              placeholder={t("knowledge.searchPlaceholder")}
             />
           </label>
 
           <div className="docs-list">
             {filtered.length === 0 ? (
               <div className="empty-state">
-                <p>
-                  {docs.length === 0
-                    ? "Aún no hay documentos. Sube el primero para alimentar el RAG."
-                    : "Ningún documento coincide con la búsqueda."}
-                </p>
+                <p>{docs.length === 0 ? t("knowledge.empty") : t("knowledge.noMatch")}</p>
               </div>
             ) : (
               GROUP_ORDER.map((group) => {
@@ -228,7 +227,7 @@ export default function KnowledgeConsole() {
                       onToggle={(e) => setKitOpen((e.target as HTMLDetailsElement).open)}
                     >
                       <summary>
-                        {groupLabel(group)}
+                        {groupLabel(group, t)}
                         <span className="doc-group__count">{items.length}</span>
                       </summary>
                       <div className="doc-group__list">{items.map(renderDoc)}</div>
@@ -239,7 +238,7 @@ export default function KnowledgeConsole() {
                 return (
                   <section key={group} className="doc-group doc-group--static">
                     <header className="doc-group__header">
-                      <h3>{groupLabel(group)}</h3>
+                      <h3>{groupLabel(group, t)}</h3>
                       <span className="doc-group__count">{items.length}</span>
                     </header>
                     <div className="doc-group__list">{items.map(renderDoc)}</div>

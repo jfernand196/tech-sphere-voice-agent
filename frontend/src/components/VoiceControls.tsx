@@ -1,3 +1,4 @@
+import { useLocale } from "../i18n/LocaleContext";
 import type { VoiceOption } from "../speech";
 
 type Props = {
@@ -12,8 +13,8 @@ type Props = {
   collapsed?: boolean;
 };
 
-function shortVoiceName(name: string): string {
-  if (!name) return "sin voz";
+function shortVoiceName(name: string, noneLabel: string): string {
+  if (!name) return noneLabel;
   const base = name.split("(")[0]?.trim() || name;
   return base.length > 22 ? `${base.slice(0, 21)}…` : base;
 }
@@ -27,6 +28,7 @@ function Controls({
   speechSupported,
   onPreview,
 }: Omit<Props, "collapsed">) {
+  const { t } = useLocale();
   return (
     <div className="voice-bar">
       <label className="toggle">
@@ -36,19 +38,19 @@ function Controls({
           onChange={(e) => onVoiceOutChange(e.target.checked)}
           disabled={!speechSupported}
         />
-        <span>Hablar respuestas</span>
+        <span>{t("voice.speakReplies")}</span>
       </label>
 
       <label className="voice-select">
-        <span className="sr-only">Voz</span>
+        <span className="sr-only">{t("voice.selectAria")}</span>
         <select
           value={voiceName}
-          aria-label="Seleccionar voz"
+          aria-label={t("voice.selectAria")}
           disabled={!speechSupported || voices.length === 0}
           onChange={(e) => onVoiceNameChange(e.target.value)}
         >
           {voices.length === 0 ? (
-            <option value="">Cargando voces…</option>
+            <option value="">{t("voice.loading")}</option>
           ) : (
             voices.map((v) => (
               <option key={`${v.name}-${v.lang}`} value={v.name}>
@@ -65,25 +67,23 @@ function Controls({
         disabled={!voiceOut || !voiceName}
         onClick={onPreview}
       >
-        Probar voz
+        {t("voice.preview")}
       </button>
     </div>
   );
 }
 
 export default function VoiceControls(props: Props) {
+  const { t } = useLocale();
   const { collapsed, voiceOut, voiceName, ...rest } = props;
   if (!collapsed) {
-    return (
-      <Controls
-        voiceOut={voiceOut}
-        voiceName={voiceName}
-        {...rest}
-      />
-    );
+    return <Controls voiceOut={voiceOut} voiceName={voiceName} {...rest} />;
   }
 
-  const summary = `Voz: ${shortVoiceName(voiceName)} · ${voiceOut ? "activada" : "apagada"}`;
+  const name = shortVoiceName(voiceName, t("voice.none"));
+  const summary = voiceOut
+    ? t("voice.summaryOn", { name })
+    : t("voice.summaryOff", { name });
 
   return (
     <details className="voice-details">

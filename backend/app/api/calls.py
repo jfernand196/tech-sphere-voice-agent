@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Body, HTTPException
 
 from app.api.deps import get_agent_service, get_call_service, settings
 from app.schemas import (
@@ -72,7 +72,11 @@ async def chat_turn(call_id: str, body: ChatTurnRequest):
 
 
 @router.post("/{call_id}/end", response_model=CallSummary)
-def end_call(call_id: str, body: EndCallRequest | None = None):
+def end_call(
+    call_id: str,
+    body: Optional[EndCallRequest] = Body(default=None),
+):
+    # Optional[…] required for FastAPI on Python 3.9 (X | None breaks route parsing).
     calls = get_call_service()
     if not calls.get(call_id):
         raise HTTPException(status_code=404, detail="Call not found")

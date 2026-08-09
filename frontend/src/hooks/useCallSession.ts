@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { endCall, listDemoPatients, sendTurn, startCall } from "../api";
 import { agentChatItemFromTurn } from "../callFormat";
 import { errMessage } from "../errors";
+import { useLocale } from "../i18n/LocaleContext";
 import { canUseSpeechRecognition, listenOnce } from "../speech";
 import type { ChatItem, CallSummary, DemoPatient } from "../types";
 
@@ -11,6 +12,7 @@ type Options = {
 };
 
 export function useCallSession({ onAgentReply }: Options = {}) {
+  const { t } = useLocale();
   const [demoPatients, setDemoPatients] = useState<DemoPatient[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState("");
   const [patientName, setPatientName] = useState("Ana Pérez");
@@ -81,7 +83,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
       setMessages([{ role: "agent", content: res.greeting }]);
       void onAgentReply?.(res.greeting);
     } catch (e) {
-      setError(errMessage(e, "No se pudo iniciar la llamada"));
+      setError(errMessage(e, t("call.errorStart")));
     } finally {
       setBusy(false);
     }
@@ -101,7 +103,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
       if (e2eMs != null) e2eSamplesRef.current.push(e2eMs);
       setMessages((prev) => [...prev, agentChatItemFromTurn(turn, e2eMs)]);
     } catch (e) {
-      setError(errMessage(e, "Error en el turno"));
+      setError(errMessage(e, t("call.errorTurn")));
     } finally {
       setBusy(false);
     }
@@ -109,7 +111,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
 
   async function listenAndSend() {
     if (!canUseSpeechRecognition()) {
-      setError("Tu navegador no soporta reconocimiento de voz. Usa Chrome y escribe el texto.");
+      setError(t("call.errorNoSpeechApi"));
       return;
     }
     setListening(true);
@@ -118,7 +120,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
       const { transcript, endedAt } = await listenOnce("es-CO");
       if (transcript) await send(transcript, endedAt);
     } catch (e) {
-      setError(errMessage(e, "Error de micrófono"));
+      setError(errMessage(e, t("call.errorMic")));
     } finally {
       setListening(false);
     }
@@ -135,7 +137,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
       setInput("");
       clearE2eSamples();
     } catch (e) {
-      setError(errMessage(e, "No se pudo cerrar la llamada"));
+      setError(errMessage(e, t("call.errorEnd")));
     } finally {
       setBusy(false);
     }

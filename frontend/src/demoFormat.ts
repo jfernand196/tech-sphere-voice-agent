@@ -1,9 +1,13 @@
 /** Display helpers for official-kit demo cases (UI only; never sent to the LLM). */
 
-const LABEL_COPY: Record<string, string> = {
-  rojo: "crítico · solo demo",
-  amarillo: "vigilancia · solo demo",
-  verde: "estable · solo demo",
+import type { MessageKey } from "./i18n";
+
+type TFn = (key: MessageKey) => string;
+
+const LABEL_KEYS: Record<string, MessageKey> = {
+  rojo: "label.rojoDetail",
+  amarillo: "label.amarilloDetail",
+  verde: "label.verdeDetail",
 };
 
 const SLUG_COPY: Record<string, string> = {
@@ -13,8 +17,9 @@ const SLUG_COPY: Record<string, string> = {
   limitada_esperada: "limitada (esperada)",
 };
 
-export function formatCaseLabel(label: string): string {
-  return LABEL_COPY[label] ?? label;
+export function formatCaseLabel(label: string, t: TFn): string {
+  const key = LABEL_KEYS[label];
+  return key ? t(key) : label;
 }
 
 function humanizeSlug(value: string): string {
