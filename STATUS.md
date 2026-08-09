@@ -1,7 +1,7 @@
 # STATUS — Tech Sphere Voice Agent (handoff for humans & agents)
 
 > **Read this file first** before changing code.  
-> Last updated: **2026-08-08** (step 4: escalate eval harness vs kit labels)  
+> Last updated: **2026-08-08** (step 5: README cold-start ≤15 min for jury lift)  
 > Repo: https://github.com/jfernand196/tech-sphere-voice-agent  
 > Default branch: `main`  
 > Owner GitHub: `jfernand196`  
@@ -109,7 +109,9 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | SOLID ports | `LLMClient`, `KnowledgePort`; mock / groq / gemini |
 | Official kit docs in repo | `docs/challenge/*` |
 | Kit clone + ingest script | `make kit-clone`, `make ingest-kit` |
-| MIT + GitHub history | PRs #1–#4 era |
+| Escalate eval | `make eval-escalate` vs kit labels |
+| Cold-start README | Timed path + `make verify` done criteria |
+| MIT + GitHub history | PRs through escalate eval |
 
 ### Partially done ⚠️
 
@@ -119,7 +121,7 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | RAG quality | **17 cholecystitis PDFs ingested** (~2k chunks); still hash embeddings (not BGE-M3/Chroma) |
 | Dataset Excel | **12 demo cases** in UI; **`make eval-escalate`** scores escalate vs verde/amarillo/rojo |
 | Voice | Browser only; Kokoro/Piper / Groq Whisper not wired |
-| Metrics | Per-turn `latency_ms`; no P50/P95 / tokens rollup in README |
+| Metrics | README reports agent-turn P50/P95 from Groq eval; tokens not rolled up yet |
 | Deliverables | Missing diagram image, informe, video |
 
 ### Must finish before submit ❌
@@ -127,9 +129,9 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 1. Configure **allowed** LLM (`GROQ_API_KEY` or Gemini) and prove it in video/informe.
 2. Ingest enough official PDFs (`make ingest-kit`) for clinical grounding demos.
 3. Use Excel cases for at least a few demo scenarios (capa2 noise helps show robustness).
-4. Metrics in README; cold-start ≤15 min verified.
+4. ~~Cold-start ≤15 min README~~ — done (step 5); **rehearse once on a clean shell** with a stopwatch.
 5. Architecture diagram + informe (model + why) + video (2 questions).
-6. Optional score boost: BGE-M3 + Chroma; Piper/Kokoro; escalate calibrated to `label_ground_truth`.
+6. Optional: token rollup in logs; BGE-M3 + Chroma; Piper/Kokoro.
 
 ---
 
@@ -194,12 +196,10 @@ Demo script: voice call → clinical question cites PDF → upload/delete custom
 
 ## 9. Work plan (now → 10 ago)
 
-1. Get free **Groq** key; set `LLM_PROVIDER=groq`; smoke-test Spanish JSON turns.
-2. Ingest 1–2 scenarios of PDFs; prove citations from official docs.
-3. Load a few Excel patients into UI start form (name/procedure/día).
-4. Calibrate escalate vs `label_ground_truth` on sample cases.
-5. Draft informe + diagram; record video + 2 camera answers.
-6. Small commits every few hours.
+1. ~~Groq key + smoke~~ / ~~ingest PDFs~~ / ~~demo patients~~ / ~~escalate eval~~ / ~~README cold start~~
+2. Rehearse cold start once with a stopwatch (clone → `make verify` + UI open).
+3. Draft informe + architecture diagram; record video + 2 camera answers.
+4. Optional: expose token usage in turn logs for README §5 completeness.
 
 ### Prompt for a new Cursor chat
 
@@ -217,7 +217,7 @@ Priority: <fill: groq wire / ingest PDFs / Excel scenarios / metrics / video>.
 - [ ] Allowed LLM configured and declared in informe
 - [ ] Official PDFs ingested; citations visible
 - [ ] All eliminatory checks pass (deliverables, cold start, allowed LLM, voice, live knowledge)
-- [ ] README ≤15 min setup + metrics
+- [x] README ≤15 min setup (+ initial metrics; tokens still thin)
 - [ ] Diagram + informe + video linked
 - [ ] Public MIT repo; incremental commits
 - [ ] Hot knowledge + escalate proven on video
