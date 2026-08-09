@@ -1,7 +1,7 @@
 # STATUS — Tech Sphere Voice Agent (handoff for humans & agents)
 
 > **Read this file first** before changing code.  
-> Last updated: **2026-08-08** (step 5: README cold-start ≤15 min for jury lift)  
+> Last updated: **2026-08-08** (step 6a: architecture diagram + technical report draft)  
 > Repo: https://github.com/jfernand196/tech-sphere-voice-agent  
 > Default branch: `main`  
 > Owner GitHub: `jfernand196`  
@@ -111,7 +111,8 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | Kit clone + ingest script | `make kit-clone`, `make ingest-kit` |
 | Escalate eval | `make eval-escalate` vs kit labels |
 | Cold-start README | Timed path + `make verify` done criteria |
-| MIT + GitHub history | PRs through escalate eval |
+| Diagram + informe | `ARCHITECTURE.md` + `docs/informe-tecnico.md` |
+| MIT + GitHub history | Incremental PRs on `main` |
 
 ### Partially done ⚠️
 
@@ -122,16 +123,15 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | Dataset Excel | **12 demo cases** in UI; **`make eval-escalate`** scores escalate vs verde/amarillo/rojo |
 | Voice | Browser only; Kokoro/Piper / Groq Whisper not wired |
 | Metrics | README reports agent-turn P50/P95 from Groq eval; tokens not rolled up yet |
-| Deliverables | Missing diagram image, informe, video |
+| Deliverables | Diagram + informe drafted; **screenshots + video** still missing |
 
 ### Must finish before submit ❌
 
-1. Configure **allowed** LLM (`GROQ_API_KEY` or Gemini) and prove it in video/informe.
-2. Ingest enough official PDFs (`make ingest-kit`) for clinical grounding demos.
-3. Use Excel cases for at least a few demo scenarios (capa2 noise helps show robustness).
-4. ~~Cold-start ≤15 min README~~ — done (step 5); **rehearse once on a clean shell** with a stopwatch.
-5. Architecture diagram + informe (model + why) + video (2 questions).
-6. Optional: token rollup in logs; BGE-M3 + Chroma; Piper/Kokoro.
+1. Configure **allowed** LLM (`GROQ_API_KEY` or Gemini) and prove it in video.
+2. Drop demo **screenshots** into `docs/captures/` and link them in the informe §9.
+3. ~~Cold-start README~~ / ~~diagram~~ / ~~informe draft~~ — done; rehearse lift once with a stopwatch.
+4. **Video** demo + 2 on-camera answers (entregable 04).
+5. Optional: token rollup in logs; BGE-M3 + Chroma; Piper/Kokoro.
 
 ---
 
@@ -196,9 +196,9 @@ Demo script: voice call → clinical question cites PDF → upload/delete custom
 
 ## 9. Work plan (now → 10 ago)
 
-1. ~~Groq key + smoke~~ / ~~ingest PDFs~~ / ~~demo patients~~ / ~~escalate eval~~ / ~~README cold start~~
-2. Rehearse cold start once with a stopwatch (clone → `make verify` + UI open).
-3. Draft informe + architecture diagram; record video + 2 camera answers.
+1. ~~Core build + eval + cold-start README + diagram + informe draft~~
+2. Add UI screenshots to `docs/captures/`; link in informe §9.
+3. Record video + 2 camera answers; rehearse cold start with a stopwatch.
 4. Optional: expose token usage in turn logs for README §5 completeness.
 
 ### Prompt for a new Cursor chat
@@ -214,12 +214,12 @@ Priority: <fill: groq wire / ingest PDFs / Excel scenarios / metrics / video>.
 
 ## 10. Definition of “ready to submit”
 
-- [ ] Allowed LLM configured and declared in informe
-- [ ] Official PDFs ingested; citations visible
+- [x] Allowed LLM declared in informe (`llama-3.3-70b-versatile` / Groq)
+- [ ] Official PDFs ingested; citations visible in demo/video
 - [ ] All eliminatory checks pass (deliverables, cold start, allowed LLM, voice, live knowledge)
 - [x] README ≤15 min setup (+ initial metrics; tokens still thin)
-- [ ] Diagram + informe + video linked
-- [ ] Public MIT repo; incremental commits
+- [x] Diagram + informe linked (screenshots + video still open)
+- [x] Public MIT repo; incremental commits
 - [ ] Hot knowledge + escalate proven on video
 
-Until checked: **scaffold + kit alignment**, not final submission.
+Until video + captures: **not final submission**.

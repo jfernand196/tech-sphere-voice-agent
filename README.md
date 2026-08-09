@@ -170,8 +170,14 @@ Adapters: `backend/app/agent/llm_groq.py`, `llm_gemini.py`. Factory: `factory.py
 make test
 ```
 
-## Submission requirements
+## Submission deliverables
 
-Must ship: public repo, architecture diagram, technical report, demo video.  
-Must prove: setup in ≤15 minutes, allowed LLM, realtime voice, upload/delete knowledge from the console.  
+| # | Deliverable | Where |
+|---|---|---|
+| 01 | Public repo + cold-start README | this file |
+| 02 | Architecture + decision-flow diagram | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
+| 03 | Technical report (model + why, prompts) | [`docs/informe-tecnico.md`](./docs/informe-tecnico.md) |
+| 04 | Demo video + 2 on-camera answers | pending |
+
+Must prove in session/video: ≤15 min lift, allowed LLM, realtime voice, upload/delete knowledge.  
 Scoring: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).
