@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { formatCaseLabel, humanizeDemoHint } from "../demoFormat";
 import { useAgentVoice } from "../hooks/useAgentVoice";
 import { useCallSession } from "../hooks/useCallSession";
+import { useLocale } from "../i18n/LocaleContext";
 import CallSummaryCard from "./CallSummaryCard";
 import ChatMessage from "./ChatMessage";
 import VoiceControls from "./VoiceControls";
 
 export default function CallPanel() {
+  const { t } = useLocale();
   const voice = useAgentVoice();
   const speakRef = useRef(voice.speakAgent);
   useEffect(() => {
@@ -34,28 +36,27 @@ export default function CallPanel() {
     voiceName: voice.voiceName,
     onVoiceNameChange: voice.selectVoice,
     speechSupported: voice.speechSupported,
-    onPreview: () =>
-      voice.speakAgent(
-        "Hola, soy tu agente de seguimiento post-operatorio. ¿Cómo te sientes hoy?",
-      ),
+    // Preview keeps Spanish — agent language is not tied to UI locale.
+    onPreview: () => voice.speakAgent(t("voice.previewText")),
   };
+
+  const lead =
+    phase === "setup"
+      ? t("call.setupLead")
+      : phase === "live"
+        ? t("call.liveLead")
+        : t("call.endedLead");
 
   return (
     <section className="panel">
       <header className="panel-header">
         <div>
           <div className="title-row">
-            <h2>Llamada de seguimiento</h2>
-            {phase === "live" ? <span className="live-pill">En curso</span> : null}
-            {phase === "ended" ? <span className="ended-pill">Finalizada</span> : null}
+            <h2>{t("call.title")}</h2>
+            {phase === "live" ? <span className="live-pill">{t("call.live")}</span> : null}
+            {phase === "ended" ? <span className="ended-pill">{t("call.ended")}</span> : null}
           </div>
-          <p>
-            {phase === "setup"
-              ? "Elige un caso del kit o un paciente libre, y empieza la conversación."
-              : phase === "live"
-                ? "El agente adapta la charla, cita protocolos y decide si alertar."
-                : "Revisa el resumen estructurado antes de una nueva llamada."}
-          </p>
+          <p>{lead}</p>
         </div>
       </header>
 
@@ -67,7 +68,7 @@ export default function CallPanel() {
         <div className="setup-card enter">
           {call.demoPatients.length > 0 ? (
             <label className="field-block">
-              Caso de demo (kit oficial)
+              {t("call.demoCase")}
               <select
                 value={call.selectedCaseId}
                 onChange={(e) => {
@@ -75,10 +76,11 @@ export default function CallPanel() {
                   setEditDetails(false);
                 }}
               >
-                <option value="">Paciente libre (editar abajo)</option>
+                <option value="">{t("call.freePatient")}</option>
                 {call.demoPatients.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.nombre} · día {p.dia_postop} · {formatCaseLabel(p.label)}
+                    {p.nombre} · {t("call.day", { n: p.dia_postop })} ·{" "}
+                    {formatCaseLabel(p.label, t)}
                   </option>
                 ))}
               </select>
@@ -90,10 +92,8 @@ export default function CallPanel() {
               <div>
                 <strong>{call.patientName}</strong>
                 <span>
-                  {call.procedure} · día {call.diaPostop}
-                  {selectedDemo
-                    ? ` · ${formatCaseLabel(selectedDemo.label)}`
-                    : ""}
+                  {call.procedure} · {t("call.day", { n: call.diaPostop })}
+                  {selectedDemo ? ` · ${formatCaseLabel(selectedDemo.label, t)}` : ""}
                 </span>
               </div>
               <button
@@ -101,14 +101,14 @@ export default function CallPanel() {
                 className="secondary"
                 onClick={() => setEditDetails(true)}
               >
-                Editar
+                {t("call.edit")}
               </button>
             </div>
           ) : (
             <>
               <div className="form-grid form-grid--2">
                 <label>
-                  Paciente
+                  {t("call.patient")}
                   <input
                     value={call.patientName}
                     onChange={(e) => {
@@ -118,7 +118,7 @@ export default function CallPanel() {
                   />
                 </label>
                 <label>
-                  Procedimiento
+                  {t("call.procedure")}
                   <input
                     value={call.procedure}
                     onChange={(e) => {
@@ -130,7 +130,7 @@ export default function CallPanel() {
               </div>
 
               <label className="field-block">
-                Día post-operatorio
+                {t("call.diaPostop")}
                 <input
                   type="number"
                   min={0}
@@ -147,8 +147,7 @@ export default function CallPanel() {
 
           {call.demoHint ? (
             <p className="demo-hint">
-              Pista para actuar al paciente (no se envía al modelo):{" "}
-              {humanizeDemoHint(call.demoHint)}
+              {t("call.demoHint")} {humanizeDemoHint(call.demoHint)}
               {selectedDemo?.ciudad || selectedDemo?.eps ? (
                 <>
                   <br />
@@ -168,7 +167,7 @@ export default function CallPanel() {
             onClick={() => void call.start()}
             disabled={call.busy}
           >
-            Iniciar llamada
+            {t("call.start")}
           </button>
         </div>
       ) : null}
@@ -180,7 +179,7 @@ export default function CallPanel() {
               className="call-meta__patient"
               title={call.callId ? `Sesión ${call.callId}` : undefined}
             >
-              {call.patientName} · día {call.diaPostop}
+              {call.patientName} · {t("call.day", { n: call.diaPostop })}
             </span>
             <button
               type="button"
@@ -191,7 +190,7 @@ export default function CallPanel() {
               }}
               disabled={call.busy}
             >
-              Colgar
+              {t("call.hangup")}
             </button>
           </div>
 
@@ -206,7 +205,7 @@ export default function CallPanel() {
             <input
               value={call.input}
               onChange={(e) => call.setInput(e.target.value)}
-              placeholder="Escribe lo que dice el paciente…"
+              placeholder={t("call.placeholder")}
               onKeyDown={(e) => {
                 if (e.key === "Enter") void call.send();
               }}
@@ -218,14 +217,14 @@ export default function CallPanel() {
               onClick={() => void call.send()}
               disabled={call.busy || !call.input.trim()}
             >
-              Enviar
+              {t("call.send")}
             </button>
             <button
               type="button"
               onClick={() => void call.listenAndSend()}
               disabled={call.busy || call.listening}
             >
-              {call.listening ? "Escuchando…" : "Hablar"}
+              {call.listening ? t("call.listening") : t("call.speak")}
             </button>
           </div>
 
