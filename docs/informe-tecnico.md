@@ -140,15 +140,17 @@ Al arrancar el backend se siembra un protocolo genérico de alarma (`main.py` �
 
 ## 8. Métricas observadas
 
+Instrumentación: tokens Groq en `llm_groq.py`; E2E voz en frontend (`listenOnce.endedAt` → TTS `onstart`); agregados P50/P95 y costo en `CallSummary` al colgar.
+
 | Métrica | Valor | Método |
 |---|---|---|
+| Latencia E2E voz P50/P95 | *rellenar tras corrida con mic* | Resumen al colgar |
 | Latencia turno agente P50 | ~1.5 s | `latency_ms`, 10 turnos Groq (`eval-escalate`) |
 | Latencia turno agente P95 | ~2.2 s | Idem |
 | Invocaciones LLM / turno | 1 | Un completion por mensaje |
 | Consultas RAG / turno | 1 | `retrieve` antes del LLM |
-| Costo estimado / llamada (~6 turnos) | ~$0–0.01 | Free tier Groq en el reto; precios lista de producción muy bajos para turnos cortos |
-
-La latencia punta-a-punta de voz añade STT + TTS del navegador encima del turno de agente.
+| Tokens in/out | visibles por turno + totales al colgar | `usage` del provider |
+| Costo estimado / llamada | en resumen (`cost_usd_estimate`) | Precios lista Groq Llama 3.3 70B; free tier ≈ $0 |
 
 ---
 

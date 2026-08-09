@@ -33,9 +33,26 @@ export function useAgentVoice() {
     localStorage.setItem(VOICE_STORAGE_KEY, name);
   }
 
-  function speakAgent(text: string) {
-    if (!voiceOut || !canUseSpeechSynthesis()) return;
-    void speak(text, { voiceName: voiceName || undefined, lang: "es-CO" });
+  /**
+   * Speak agent reply. If `speechEndedAt` is set (from STT), resolves with
+   * challenge E2E latency ms (patient finished speaking → agent audio starts).
+   */
+  async function speakAgent(
+    text: string,
+    speechEndedAt?: number,
+  ): Promise<number | undefined> {
+    if (!voiceOut || !canUseSpeechSynthesis()) return undefined;
+    let e2e: number | undefined;
+    await speak(text, {
+      voiceName: voiceName || undefined,
+      lang: "es-CO",
+      onStart: () => {
+        if (typeof speechEndedAt === "number") {
+          e2e = Math.max(0, Math.round(performance.now() - speechEndedAt));
+        }
+      },
+    });
+    return e2e;
   }
 
   function stopAgent() {

@@ -19,6 +19,10 @@ export type AgentTurnResponse = {
   escalate_reason?: string | null;
   model_id?: string | null;
   latency_ms?: number | null;
+  tokens_in?: number | null;
+  tokens_out?: number | null;
+  model_invocations?: number | null;
+  rag_queries?: number | null;
 };
 
 export type CallMessage = {
@@ -31,7 +35,12 @@ export type CallMessage = {
 };
 
 /** Chat bubble model used by the call UI (API message + optional latency). */
-export type ChatItem = CallMessage & { latency_ms?: number | null };
+export type ChatItem = CallMessage & {
+  latency_ms?: number | null;
+  e2e_latency_ms?: number | null;
+  tokens_in?: number | null;
+  tokens_out?: number | null;
+};
 
 export type CallSummary = {
   call_id: string;
@@ -44,6 +53,16 @@ export type CallSummary = {
   sources_used: SourceCitation[];
   summary_text: string;
   turn_count: number;
+  tokens_in_total?: number;
+  tokens_out_total?: number;
+  model_invocations_total?: number;
+  rag_queries_total?: number;
+  agent_latency_p50_ms?: number | null;
+  agent_latency_p95_ms?: number | null;
+  e2e_latency_p50_ms?: number | null;
+  e2e_latency_p95_ms?: number | null;
+  cost_usd_estimate?: number | null;
+  cost_note?: string | null;
 };
 
 export type DocumentInfo = {

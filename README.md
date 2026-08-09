@@ -133,22 +133,41 @@ Results: `samples/eval_escalate_results.json` (gitignored).
 
 ---
 
-## Metrics (observed)
+## Metrics (challenge §5)
 
-Measured on a cold machine path: agent turn = time from request accepted until JSON reply ready (`latency_ms` in each turn). Browser STT/TTS adds extra wall time on top (not included below).
+Instrumentado en código. Tras una llamada de voz, el **resumen al colgar** muestra totales y P50/P95; cada burbuja del agente muestra `e2e` / `api` / `tok`.
 
-| Metric | Value | How |
+### How we measure
+
+| Metric | Definition in this repo |
+|---|---|
+| **E2E latency** (official) | `performance.now()` when Web Speech STT returns the final transcript → TTS `utterance.onstart` (agent audio begins) |
+| **Agent latency** (server) | Backend `latency_ms`: RAG retrieve + LLM + safety |
+| **Tokens** | Groq `usage.prompt_tokens` / `completion_tokens` (Gemini: `usageMetadata`) |
+| **Invocations / RAG** | **1** model call and **1** retrieve per patient turn |
+| **Cost** | `(tokens_in/1e6)*$0.59 + (tokens_out/1e6)*$0.79` list price for Llama 3.3 70B on Groq; free tier ≈ $0 at runtime |
+
+### How to refresh numbers
+
+1. `make backend` + `make frontend` with Groq key  
+2. Call tab → **Hablar** for ≥10 voice turns (mic on, voice out on)  
+3. End call → read P50/P95 e2e + token totals on the summary card (also in JSON)  
+4. Paste into the table below
+
+### Observed sample (update after your voice run)
+
+| Metric | Value | Notes |
 |---|---|---|
-| Agent-turn latency P50 | **~1.5 s** | Groq `llama-3.3-70b-versatile`, 10 kit escalate turns (`make eval-escalate`) |
+| E2E voice latency P50 | *run voice sample* | Requires mic turns; not from `eval-escalate` |
+| E2E voice latency P95 | *run voice sample* | Same |
+| Agent-turn latency P50 | **~1.5 s** | Groq, 10 kit turns (`make eval-escalate`) |
 | Agent-turn latency P95 | **~2.2 s** | Same sample |
-| Model invocations / turn | **1** | One chat completion per patient utterance |
-| RAG queries / turn | **1** | Local retrieve before the LLM call |
-| Tokens in / out per turn | *see live turn logs* | Groq usage not yet rolled up in README; each API response exposes usage — capture during jury session from network/logs |
-| Est. cost / call (≈6 turns) | **~$0.00–0.01** | Groq free tier for challenge; production list prices for Llama 3.3 70B on Groq are typically well under a cent for short Spanish turns |
+| Model invocations / turn | **1** | Fixed by design |
+| RAG queries / turn | **1** | Fixed by design |
+| Tokens in / out | *per-turn in UI; totals on hang-up* | From provider usage |
+| Est. cost / call | *on hang-up summary* | Prod list-price estimate; challenge free tier ≈ $0 |
 
-Voice path note: end-to-end “patient stops speaking → agent audio starts” ≈ STT finalize + agent turn + TTS start. On localhost Chrome this is usually a few seconds total when the model is warm.
-
-Do not treat these numbers as synthetic benchmarks — re-check `latency_ms` on the Call tab during the live session.
+Do not invent E2E numbers — only report what the summary card shows after real voice turns.
 
 ---
 

@@ -14,7 +14,7 @@ export default function CallPanel() {
   }, [voice.speakAgent]);
 
   const call = useCallSession({
-    onAgentReply: (text) => speakRef.current(text),
+    onAgentReply: (text, speechEndedAt) => speakRef.current(text, speechEndedAt),
   });
 
   const phase = call.callId ? "live" : call.summary ? "ended" : "setup";

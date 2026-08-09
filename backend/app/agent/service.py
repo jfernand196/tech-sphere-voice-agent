@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import time
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from app.agent.parsing import build_sources
 from app.agent.safety import apply_safety_overrides
+from app.metrics import optional_int
 from app.ports import KnowledgePort, LLMClient
 from app.schemas import AgentTurnResponse, PatientState, Severity
+
+_DEFAULT_REPLY = "¿Me puedes contar un poco más cómo te sientes?"
 
 
 class AgentService:
@@ -38,15 +41,7 @@ class AgentService:
             rag_context=rag_context,
         )
 
-        try:
-            state = PatientState(**(parsed.get("patient_state") or {}))
-        except Exception:
-            state = PatientState(
-                symptoms=[],
-                severity=Severity.none,
-                notes=message[:200],
-            )
-
+        state = _patient_state(parsed, message)
         escalate, reason, state = apply_safety_overrides(
             message,
             escalate=bool(parsed.get("escalate")),
@@ -55,11 +50,26 @@ class AgentService:
         )
 
         return AgentTurnResponse(
-            reply=str(parsed.get("reply") or "¿Me puedes contar un poco más cómo te sientes?"),
+            reply=str(parsed.get("reply") or _DEFAULT_REPLY),
             sources=build_sources(parsed, rag_hits),
             patient_state=state,
             escalate=escalate,
             escalate_reason=reason,
             model_id=self._llm.model_id,
             latency_ms=int((time.perf_counter() - started) * 1000),
+            tokens_in=optional_int(parsed.get("tokens_in")),
+            tokens_out=optional_int(parsed.get("tokens_out")),
+            model_invocations=1,
+            rag_queries=1,
+        )
+
+
+def _patient_state(parsed: Dict[str, Any], message: str) -> PatientState:
+    try:
+        return PatientState(**(parsed.get("patient_state") or {}))
+    except Exception:
+        return PatientState(
+            symptoms=[],
+            severity=Severity.none,
+            notes=message[:200],
         )

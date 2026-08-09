@@ -65,6 +65,9 @@ class MockLLMClient:
         if symptoms and severity_rank(severity) < severity_rank(Severity.mild):
             severity = Severity.mild
 
+        # Rough local estimate so mock paths still exercise metrics fields.
+        tokens_in = max(1, (len(message) + sum(len(c.get("text", "")) for c in rag_context)) // 4)
+        tokens_out = max(1, len(reply) // 4)
         return {
             "reply": reply,
             "sources": sources,
@@ -75,6 +78,8 @@ class MockLLMClient:
             },
             "escalate": escalate,
             "escalate_reason": reason,
+            "tokens_in": tokens_in,
+            "tokens_out": tokens_out,
         }
 
 

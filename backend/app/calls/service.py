@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 from app.agent.safety import severity_rank
+from app.metrics import rollup_call_metrics
 from app.schemas import (
     AgentTurnResponse,
     CallMessage,
@@ -19,6 +21,61 @@ from app.schemas import (
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def agent_message_from_turn(turn: AgentTurnResponse) -> CallMessage:
+    """Map turn DTO → persisted message (single mapping site)."""
+    return CallMessage(
+        role="agent",
+        content=turn.reply,
+        sources=turn.sources,
+        escalate=turn.escalate,
+        escalate_reason=turn.escalate_reason,
+        patient_state=turn.patient_state,
+        latency_ms=turn.latency_ms,
+        tokens_in=turn.tokens_in,
+        tokens_out=turn.tokens_out,
+        model_invocations=turn.model_invocations,
+        rag_queries=turn.rag_queries,
+    )
+
+
+@dataclass
+class _ClinicalFold:
+    symptoms: list[str]
+    severity: Severity
+    escalate: bool
+    escalate_reason: str | None
+    sources_used: list[SourceCitation]
+
+
+def _fold_clinical(messages: list[CallMessage]) -> _ClinicalFold:
+    symptoms: list[str] = []
+    severity = Severity.none
+    escalate = False
+    escalate_reason: str | None = None
+    sources_used: dict[str, SourceCitation] = {}
+
+    for msg in messages:
+        if msg.patient_state:
+            for s in msg.patient_state.symptoms:
+                if s not in symptoms:
+                    symptoms.append(s)
+            if severity_rank(msg.patient_state.severity) > severity_rank(severity):
+                severity = msg.patient_state.severity
+        if msg.escalate:
+            escalate = True
+            escalate_reason = msg.escalate_reason or escalate_reason
+        for src in msg.sources:
+            sources_used[src.chunk_id] = src
+
+    return _ClinicalFold(
+        symptoms=symptoms,
+        severity=severity,
+        escalate=escalate,
+        escalate_reason=escalate_reason,
+        sources_used=list(sources_used.values()),
+    )
 
 
 class CallService:
@@ -50,9 +107,7 @@ class CallService:
             procedure=req.procedure,
             dia_postop=req.dia_postop,
             language=req.language,
-            messages=[
-                CallMessage(role="agent", content=greeting),
-            ],
+            messages=[CallMessage(role="agent", content=greeting)],
         )
         self._calls[call_id] = record
         self._persist()
@@ -72,59 +127,37 @@ class CallService:
 
     def append_agent(self, call_id: str, turn: AgentTurnResponse) -> CallRecord:
         record = self._require(call_id)
-        record.messages.append(
-            CallMessage(
-                role="agent",
-                content=turn.reply,
-                sources=turn.sources,
-                escalate=turn.escalate,
-                escalate_reason=turn.escalate_reason,
-                patient_state=turn.patient_state,
-            )
-        )
+        record.messages.append(agent_message_from_turn(turn))
         self._persist()
         return record
 
-    def end(self, call_id: str) -> CallRecord:
+    def end(self, call_id: str, *, e2e_latency_ms: list[int] | None = None) -> CallRecord:
         record = self._require(call_id)
-        symptoms: list[str] = []
-        severity = Severity.none
-        escalate = False
-        escalate_reason = None
-        sources_used: dict[str, SourceCitation] = {}
+        clinical = _fold_clinical(record.messages)
+        metrics = rollup_call_metrics(record.messages, e2e_latency_ms)
 
-        for msg in record.messages:
-            if msg.patient_state:
-                for s in msg.patient_state.symptoms:
-                    if s not in symptoms:
-                        symptoms.append(s)
-                if severity_rank(msg.patient_state.severity) > severity_rank(severity):
-                    severity = msg.patient_state.severity
-            if msg.escalate:
-                escalate = True
-                escalate_reason = msg.escalate_reason or escalate_reason
-            for src in msg.sources:
-                sources_used[src.chunk_id] = src
-
-        summary_text = self._build_summary_text(
-            record=record,
-            symptoms=symptoms,
-            severity=severity,
-            escalate=escalate,
-            escalate_reason=escalate_reason,
-        )
         record.summary = CallSummary(
             call_id=record.call_id,
             patient_name=record.patient_name,
             procedure=record.procedure,
-            symptoms=symptoms,
-            severity=severity,
-            escalate=escalate,
-            escalate_reason=escalate_reason,
-            sources_used=list(sources_used.values()),
-            summary_text=summary_text,
-            turn_count=len(record.messages),
+            symptoms=clinical.symptoms,
+            severity=clinical.severity,
+            escalate=clinical.escalate,
+            escalate_reason=clinical.escalate_reason,
+            sources_used=clinical.sources_used,
+            summary_text=_summary_text(record, clinical),
+            turn_count=metrics.patient_turns,
             ended_at=_utcnow(),
+            tokens_in_total=metrics.tokens_in_total,
+            tokens_out_total=metrics.tokens_out_total,
+            model_invocations_total=metrics.model_invocations_total,
+            rag_queries_total=metrics.rag_queries_total,
+            agent_latency_p50_ms=metrics.agent_latency_p50_ms,
+            agent_latency_p95_ms=metrics.agent_latency_p95_ms,
+            e2e_latency_p50_ms=metrics.e2e_latency_p50_ms,
+            e2e_latency_p95_ms=metrics.e2e_latency_p95_ms,
+            cost_usd_estimate=metrics.cost_usd_estimate,
+            cost_note=metrics.cost_note,
         )
         record.status = "ended"
         record.ended_at = _utcnow()
@@ -141,20 +174,13 @@ class CallService:
             raise KeyError(call_id)
         return record
 
-    def _build_summary_text(
-        self,
-        *,
-        record: CallRecord,
-        symptoms: list[str],
-        severity: Severity,
-        escalate: bool,
-        escalate_reason: str | None,
-    ) -> str:
-        symptom_txt = ", ".join(symptoms) if symptoms else "ninguno reportado"
-        alert = "SÍ" if escalate else "NO"
-        reason = f" Motivo: {escalate_reason}." if escalate_reason else ""
-        return (
-            f"Llamada de seguimiento post-operatorio para {record.patient_name} "
-            f"tras {record.procedure}. Síntomas: {symptom_txt}. "
-            f"Severidad estimada: {severity.value}. Alerta a humano: {alert}.{reason}"
-        )
+
+def _summary_text(record: CallRecord, clinical: _ClinicalFold) -> str:
+    symptom_txt = ", ".join(clinical.symptoms) if clinical.symptoms else "ninguno reportado"
+    alert = "SÍ" if clinical.escalate else "NO"
+    reason = f" Motivo: {clinical.escalate_reason}." if clinical.escalate_reason else ""
+    return (
+        f"Llamada de seguimiento post-operatorio para {record.patient_name} "
+        f"tras {record.procedure}. Síntomas: {symptom_txt}. "
+        f"Severidad estimada: {clinical.severity.value}. Alerta a humano: {alert}.{reason}"
+    )

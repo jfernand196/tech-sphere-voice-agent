@@ -10,6 +10,7 @@ from app.schemas import (
     CallRecord,
     CallSummary,
     ChatTurnRequest,
+    EndCallRequest,
     StartCallRequest,
     StartCallResponse,
 )
@@ -71,10 +72,11 @@ async def chat_turn(call_id: str, body: ChatTurnRequest):
 
 
 @router.post("/{call_id}/end", response_model=CallSummary)
-def end_call(call_id: str):
+def end_call(call_id: str, body: EndCallRequest | None = None):
     calls = get_call_service()
     if not calls.get(call_id):
         raise HTTPException(status_code=404, detail="Call not found")
-    record = calls.end(call_id)
+    payload = body or EndCallRequest()
+    record = calls.end(call_id, e2e_latency_ms=payload.e2e_latency_ms)
     assert record.summary is not None
     return record.summary
