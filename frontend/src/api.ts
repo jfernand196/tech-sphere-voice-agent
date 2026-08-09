@@ -58,8 +58,12 @@ export function sendTurn(callId: string, message: string) {
   });
 }
 
-export function endCall(callId: string) {
-  return request<CallSummary>(`/calls/${callId}/end`, { method: "POST" });
+export function endCall(callId: string, e2eLatencyMs: number[] = []) {
+  return request<CallSummary>(`/calls/${callId}/end`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ e2e_latency_ms: e2eLatencyMs }),
+  });
 }
 
 export function listDocuments() {

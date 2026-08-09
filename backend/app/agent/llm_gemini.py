@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Tuple
+
 import httpx
 
 from app.agent.llm_base import PromptedLLMClient
+from app.metrics import Usage, usage_gemini
 
 
 class GeminiLLMClient(PromptedLLMClient):
@@ -12,8 +15,7 @@ class GeminiLLMClient(PromptedLLMClient):
         super().__init__(model_id=model_id)
         self._api_key = api_key
 
-    async def _generate(self, *, system: str, user: str) -> str:
-        # Gemini generateContent: fold system into the user turn for broad API compatibility.
+    async def _generate(self, *, system: str, user: str) -> Tuple[str, Usage]:
         payload = {
             "contents": [
                 {
@@ -42,4 +44,5 @@ class GeminiLLMClient(PromptedLLMClient):
         parts = (
             ((data.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
         )
-        return "".join(p.get("text", "") for p in parts if isinstance(p, dict))
+        text = "".join(p.get("text", "") for p in parts if isinstance(p, dict))
+        return text, usage_gemini(data)

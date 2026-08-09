@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { endCall, listDemoPatients, sendTurn, startCall } from "../api";
+import { agentChatItemFromTurn } from "../callFormat";
 import { errMessage } from "../errors";
 import { canUseSpeechRecognition, listenOnce } from "../speech";
 import type { ChatItem, CallSummary, DemoPatient } from "../types";
 
 type Options = {
-  onAgentReply?: (text: string) => void;
+  /** Speak reply; return E2E ms when speechEndedAt was provided. */
+  onAgentReply?: (text: string, speechEndedAt?: number) => Promise<number | undefined> | void;
 };
 
 export function useCallSession({ onAgentReply }: Options = {}) {
@@ -23,6 +25,11 @@ export function useCallSession({ onAgentReply }: Options = {}) {
   const [summary, setSummary] = useState<CallSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const e2eSamplesRef = useRef<number[]>([]);
+
+  function clearE2eSamples() {
+    e2eSamplesRef.current = [];
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -66,12 +73,13 @@ export function useCallSession({ onAgentReply }: Options = {}) {
   async function start() {
     setError(null);
     setSummary(null);
+    clearE2eSamples();
     setBusy(true);
     try {
       const res = await startCall(patientName, procedure, diaPostop);
       setCallId(res.call_id);
       setMessages([{ role: "agent", content: res.greeting }]);
-      onAgentReply?.(res.greeting);
+      void onAgentReply?.(res.greeting);
     } catch (e) {
       setError(errMessage(e, "No se pudo iniciar la llamada"));
     } finally {
@@ -79,7 +87,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
     }
   }
 
-  async function send(text?: string) {
+  async function send(text?: string, speechEndedAt?: number) {
     const message = (text ?? input).trim();
     if (!callId || !message) return;
     setError(null);
@@ -88,19 +96,10 @@ export function useCallSession({ onAgentReply }: Options = {}) {
     setMessages((prev) => [...prev, { role: "patient", content: message }]);
     try {
       const turn = await sendTurn(callId, message);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "agent",
-          content: turn.reply,
-          sources: turn.sources,
-          escalate: turn.escalate,
-          escalate_reason: turn.escalate_reason,
-          patient_state: turn.patient_state,
-          latency_ms: turn.latency_ms,
-        },
-      ]);
-      onAgentReply?.(turn.reply);
+      const spoken = await onAgentReply?.(turn.reply, speechEndedAt);
+      const e2eMs = typeof spoken === "number" ? spoken : undefined;
+      if (e2eMs != null) e2eSamplesRef.current.push(e2eMs);
+      setMessages((prev) => [...prev, agentChatItemFromTurn(turn, e2eMs)]);
     } catch (e) {
       setError(errMessage(e, "Error en el turno"));
     } finally {
@@ -116,8 +115,8 @@ export function useCallSession({ onAgentReply }: Options = {}) {
     setListening(true);
     setError(null);
     try {
-      const transcript = await listenOnce("es-CO");
-      if (transcript) await send(transcript);
+      const { transcript, endedAt } = await listenOnce("es-CO");
+      if (transcript) await send(transcript, endedAt);
     } catch (e) {
       setError(errMessage(e, "Error de micrófono"));
     } finally {
@@ -129,11 +128,12 @@ export function useCallSession({ onAgentReply }: Options = {}) {
     if (!callId) return;
     setBusy(true);
     try {
-      const res = await endCall(callId);
+      const res = await endCall(callId, e2eSamplesRef.current);
       setSummary(res);
       setCallId(null);
       setMessages([]);
       setInput("");
+      clearE2eSamples();
     } catch (e) {
       setError(errMessage(e, "No se pudo cerrar la llamada"));
     } finally {
@@ -149,6 +149,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
     setError(null);
     setListening(false);
     setBusy(false);
+    clearE2eSamples();
   }
 
   return {

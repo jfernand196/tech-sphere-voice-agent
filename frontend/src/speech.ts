@@ -160,6 +160,7 @@ function speakChunk(
   text: string,
   voice: SpeechSynthesisVoice | null,
   lang: string,
+  onStart?: () => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const utter = new SpeechSynthesisUtterance(text);
@@ -169,6 +170,9 @@ function speakChunk(
     utter.rate = 0.92;
     utter.pitch = 1.02;
     utter.volume = 1;
+    if (onStart) {
+      utter.onstart = () => onStart();
+    }
     utter.onend = () => resolve();
     utter.onerror = (event) => {
       if (event.error === "interrupted" || event.error === "canceled") {
@@ -184,6 +188,8 @@ function speakChunk(
 type SpeakOptions = {
   lang?: string;
   voiceName?: string;
+  /** Fires when the first audio chunk actually starts (challenge E2E end mark). */
+  onStart?: () => void;
 };
 
 export function stopSpeaking(): void {
@@ -207,18 +213,30 @@ export async function speak(text: string, options: SpeakOptions = {}): Promise<v
   if (myToken !== speakToken) return;
 
   const chunks = splitForSpeech(text);
+  let started = false;
   speakChain = speakChain
     .catch(() => undefined)
     .then(async () => {
       for (const chunk of chunks) {
         if (myToken !== speakToken) return;
-        await speakChunk(chunk, voice, lang);
+        await speakChunk(chunk, voice, lang, () => {
+          if (!started) {
+            started = true;
+            options.onStart?.();
+          }
+        });
         if (myToken !== speakToken) return;
         await new Promise((r) => window.setTimeout(r, 120));
       }
     });
   return speakChain;
 }
+
+export type ListenResult = {
+  transcript: string;
+  /** performance.now() when final speech result arrived (patient finished speaking). */
+  endedAt: number;
+};
 
 function speechErrorMessage(code: string): string {
   const map: Record<string, string> = {
@@ -234,7 +252,7 @@ function speechErrorMessage(code: string): string {
   return map[code] || `Error de voz: ${code}`;
 }
 
-export function listenOnce(lang = "es-CO"): Promise<string> {
+export function listenOnce(lang = "es-CO"): Promise<ListenResult> {
   return new Promise((resolve, reject) => {
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Ctor) {
@@ -248,16 +266,22 @@ export function listenOnce(lang = "es-CO"): Promise<string> {
     recognition.lang = lang;
     recognition.interimResults = false;
     recognition.continuous = false;
+    let settled = false;
     recognition.onresult = (event) => {
       const transcript = event.results[0]?.[0]?.transcript?.trim() || "";
       if (!transcript) {
         reject(new Error(speechErrorMessage("no-speech")));
         return;
       }
-      resolve(transcript);
+      settled = true;
+      resolve({ transcript, endedAt: performance.now() });
     };
     recognition.onerror = (event) => reject(new Error(speechErrorMessage(event.error)));
-    recognition.onend = () => undefined;
+    recognition.onend = () => {
+      if (!settled) {
+        reject(new Error(speechErrorMessage("no-speech")));
+      }
+    };
     recognition.start();
   });
 }

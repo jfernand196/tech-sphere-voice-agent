@@ -37,6 +37,10 @@ class AgentTurnResponse(BaseModel):
     escalate_reason: Optional[str] = None
     model_id: Optional[str] = None
     latency_ms: Optional[int] = None
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None
+    model_invocations: int = 1
+    rag_queries: int = 1
 
 
 class StartCallRequest(BaseModel):
@@ -71,6 +75,12 @@ class ChatTurnRequest(BaseModel):
     message: str
 
 
+class EndCallRequest(BaseModel):
+    """Optional client-measured voice→voice latencies (ms) for challenge P50/P95."""
+
+    e2e_latency_ms: List[int] = Field(default_factory=list)
+
+
 class CallMessage(BaseModel):
     role: str
     content: str
@@ -78,6 +88,11 @@ class CallMessage(BaseModel):
     escalate: bool = False
     escalate_reason: Optional[str] = None
     patient_state: Optional[PatientState] = None
+    latency_ms: Optional[int] = None
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None
+    model_invocations: Optional[int] = None
+    rag_queries: Optional[int] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -93,6 +108,17 @@ class CallSummary(BaseModel):
     summary_text: str
     turn_count: int
     ended_at: datetime = Field(default_factory=datetime.utcnow)
+    # Challenge metrics (§5)
+    tokens_in_total: int = 0
+    tokens_out_total: int = 0
+    model_invocations_total: int = 0
+    rag_queries_total: int = 0
+    agent_latency_p50_ms: Optional[int] = None
+    agent_latency_p95_ms: Optional[int] = None
+    e2e_latency_p50_ms: Optional[int] = None
+    e2e_latency_p95_ms: Optional[int] = None
+    cost_usd_estimate: Optional[float] = None
+    cost_note: Optional[str] = None
 
 
 class CallRecord(BaseModel):

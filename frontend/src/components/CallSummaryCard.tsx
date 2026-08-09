@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatPairMs, hasCallMetrics } from "../callFormat";
 import { severityText } from "../clinicalFormat";
 import { displayDocTitle } from "../knowledgeFormat";
 import type { CallSummary } from "../types";
@@ -7,6 +8,55 @@ type Props = {
   summary: CallSummary;
   onNewCall: () => void;
 };
+
+function ChipList({ items }: { items: string[] }) {
+  return (
+    <ul className="chip-row">
+      {items.map((s) => (
+        <li key={s} className="chip">
+          {s}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MetricsBlock({ summary }: { summary: CallSummary }) {
+  if (!hasCallMetrics(summary)) return null;
+  return (
+    <>
+      <div>
+        <dt>Tokens (in/out)</dt>
+        <dd>
+          {summary.tokens_in_total ?? 0} / {summary.tokens_out_total ?? 0}
+        </dd>
+      </div>
+      <div>
+        <dt>LLM / RAG</dt>
+        <dd>
+          {summary.model_invocations_total ?? 0} inv · {summary.rag_queries_total ?? 0} RAG
+        </dd>
+      </div>
+      <div className="summary-grid__wide">
+        <dt>Latencia P50 / P95</dt>
+        <dd>
+          {summary.e2e_latency_p50_ms != null ? (
+            <>e2e voz {formatPairMs(summary.e2e_latency_p50_ms, summary.e2e_latency_p95_ms)} · </>
+          ) : null}
+          api {formatPairMs(summary.agent_latency_p50_ms, summary.agent_latency_p95_ms)}
+        </dd>
+      </div>
+      {summary.cost_usd_estimate != null ? (
+        <div className="summary-grid__wide">
+          <dt>Costo est. (prod)</dt>
+          <dd title={summary.cost_note ?? undefined}>
+            ${summary.cost_usd_estimate.toFixed(4)} USD
+          </dd>
+        </div>
+      ) : null}
+    </>
+  );
+}
 
 export default function CallSummaryCard({ summary, onNewCall }: Props) {
   const [showRaw, setShowRaw] = useState(false);
@@ -42,17 +92,12 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
           <dt>Turnos</dt>
           <dd>{summary.turn_count}</dd>
         </div>
+        <MetricsBlock summary={summary} />
         <div className="summary-grid__wide">
           <dt>Síntomas</dt>
           <dd>
             {summary.symptoms.length ? (
-              <ul className="chip-row">
-                {summary.symptoms.map((s) => (
-                  <li key={s} className="chip">
-                    {s}
-                  </li>
-                ))}
-              </ul>
+              <ChipList items={summary.symptoms} />
             ) : (
               "Ninguno reportado"
             )}

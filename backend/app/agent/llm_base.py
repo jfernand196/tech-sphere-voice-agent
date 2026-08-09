@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from app.agent.parsing import parse_agent_json
 from app.agent.prompts import SYSTEM_PROMPT, build_user_prompt
+from app.metrics import Usage, attach_usage
 
 
 class PromptedLLMClient(ABC):
@@ -31,9 +32,9 @@ class PromptedLLMClient(ABC):
             history=history,
             rag_context=rag_context,
         )
-        raw = await self._generate(system=SYSTEM_PROMPT, user=user_prompt)
-        return parse_agent_json(raw)
+        raw, usage = await self._generate(system=SYSTEM_PROMPT, user=user_prompt)
+        return attach_usage(parse_agent_json(raw), usage)
 
     @abstractmethod
-    async def _generate(self, *, system: str, user: str) -> str:
-        """Provider-specific HTTP call; return raw model text."""
+    async def _generate(self, *, system: str, user: str) -> Tuple[str, Usage]:
+        """Provider-specific HTTP call; return raw model text + optional usage."""

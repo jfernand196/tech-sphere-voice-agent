@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Tuple
+
 import httpx
 
 from app.agent.llm_base import PromptedLLMClient
+from app.metrics import Usage, usage_openai_compat
 
 
 class GroqLLMClient(PromptedLLMClient):
@@ -14,7 +17,7 @@ class GroqLLMClient(PromptedLLMClient):
         super().__init__(model_id=model_id)
         self._api_key = api_key
 
-    async def _generate(self, *, system: str, user: str) -> str:
+    async def _generate(self, *, system: str, user: str) -> Tuple[str, Usage]:
         payload = {
             "model": self.model_id,
             "temperature": 0.2,
@@ -36,4 +39,5 @@ class GroqLLMClient(PromptedLLMClient):
             )
             resp.raise_for_status()
             data = resp.json()
-        return (data.get("choices") or [{}])[0].get("message", {}).get("content") or ""
+        text = (data.get("choices") or [{}])[0].get("message", {}).get("content") or ""
+        return text, usage_openai_compat(data)
