@@ -1,4 +1,4 @@
-.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq
+.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq verify
 
 setup:
 	cd backend && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
@@ -10,6 +10,10 @@ backend:
 
 frontend:
 	cd frontend && npm run dev
+
+# Cold-start check: API up + allowed LLM ready (run after make backend).
+verify:
+	@curl -sf http://127.0.0.1:8001/health | python3 -c 'import sys,json; d=json.load(sys.stdin); ready=bool(d.get("llm_ready")); print("status=%s llm_ready=%s llm_provider=%s model_id=%s" % (d.get("status"), str(ready).lower(), d.get("llm_provider"), d.get("model_id"))); sys.exit(0 if ready else 1)'
 
 # Official artifacts: https://github.com/TechSphere2026/ParticipantArtifacts
 kit-clone:
