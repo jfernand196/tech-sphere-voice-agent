@@ -89,6 +89,16 @@ Adapters: `backend/app/agent/llm_groq.py`, `llm_gemini.py`. Factory: `factory.py
 
 Rebuild the selector catalog after refreshing the official kit: `make export-demo`.
 
+Escalate evaluation (official kit required):
+
+```bash
+make kit-clone
+make eval-escalate ARGS='--provider mock'          # offline guardrails
+make eval-escalate                                 # uses backend/.env LLM (e.g. groq)
+```
+
+Target: **all rojo cases escalate**; verde false positives should stay low. Results: `samples/eval_escalate_results.json` (gitignored).
+
 ## Tests
 
 ```bash

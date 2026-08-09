@@ -1,4 +1,4 @@
-.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo test smoke-groq
+.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq
 
 setup:
 	cd backend && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
@@ -24,6 +24,10 @@ ingest-kit:
 # Rebuild samples/demo_patients.json from official-kit Excels (colecistectomía mix).
 export-demo:
 	cd backend && . .venv/bin/activate && PYTHONPATH=. python scripts/export_demo_patients.py
+
+# Escalate eval vs kit labels (rojo must escalate). Example: make eval-escalate ARGS='--provider mock'
+eval-escalate:
+	cd backend && . .venv/bin/activate && PYTHONPATH=. python scripts/eval_escalate.py $(ARGS)
 
 seed-check:
 	curl -s http://127.0.0.1:8001/health && echo && curl -s http://127.0.0.1:8001/knowledge/documents | python3 -m json.tool

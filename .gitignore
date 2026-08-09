@@ -20,6 +20,9 @@ backend/data/documents.json
 # make kit-clone  →  ./official-kit
 official-kit/
 
+# Local eval runs (regenerate with make eval-escalate)
+samples/eval_escalate_results.json
+
 # Node
 frontend/node_modules/
 frontend/dist/

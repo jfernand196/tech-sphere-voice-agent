@@ -14,13 +14,25 @@ ALARM_KEYWORDS: Dict[str, Severity] = {
     "sangrando": Severity.severe,
     "dolor intenso": Severity.severe,
     "dolor muy fuerte": Severity.severe,
+    "dolor lo pondría en 8": Severity.severe,
+    "dolor lo pondría en 9": Severity.severe,
+    "dolor lo pondría en 10": Severity.severe,
+    "/10": Severity.mild,  # presence alone is weak; composites handle risk
     "fiebre": Severity.moderate,
+    "afiebrad": Severity.moderate,
+    "cuerpo caliente": Severity.moderate,
+    "38": Severity.moderate,
     "39": Severity.severe,
     "40": Severity.severe,
     "desmayo": Severity.severe,
     "pecho": Severity.severe,
     "vómito": Severity.moderate,
     "vomito": Severity.moderate,
+    "secreción purulenta": Severity.severe,
+    "secrecion purulenta": Severity.severe,
+    "pus": Severity.severe,
+    "líquido amarillo": Severity.severe,
+    "liquido amarillo": Severity.severe,
     "hablar con un humano": Severity.moderate,
     "quiero un doctor": Severity.moderate,
 }
@@ -44,6 +56,35 @@ class SafetyAssessment:
     escalate_reason: Optional[str]
 
 
+def _has_fever_signal(lower: str) -> bool:
+    return any(
+        token in lower
+        for token in ("fiebre", "afiebrad", "cuerpo caliente", "38", "39", "40")
+    )
+
+
+def _has_wound_infection_signal(lower: str) -> bool:
+    return any(
+        token in lower
+        for token in (
+            "secreción purulenta",
+            "secrecion purulenta",
+            "pus",
+            "líquido amarillo",
+            "liquido amarillo",
+            "secreción",
+            "secrecion",
+        )
+    )
+
+
+def _high_pain(lower: str) -> bool:
+    for n in ("8/10", "9/10", "10/10", "en 8/", "en 9/", "en 10/"):
+        if n in lower.replace(" ", ""):
+            return True
+    return "dolor intenso" in lower or "dolor muy fuerte" in lower
+
+
 def assess_message(message: str) -> SafetyAssessment:
     lower = message.lower()
     symptoms: List[str] = []
@@ -52,6 +93,8 @@ def assess_message(message: str) -> SafetyAssessment:
     reason: Optional[str] = None
 
     for keyword, sev in ALARM_KEYWORDS.items():
+        if keyword == "/10":
+            continue
         if keyword not in lower:
             continue
         symptoms.append(keyword)
@@ -60,6 +103,19 @@ def assess_message(message: str) -> SafetyAssessment:
         if sev == Severity.severe or "humano" in keyword or "doctor" in keyword:
             escalate = True
             reason = f"Señal de alarma detectada: {keyword}"
+
+    # Composite clinical picture (common in rojo trajectories).
+    if _has_fever_signal(lower) and _has_wound_infection_signal(lower):
+        escalate = True
+        severity = Severity.severe
+        reason = reason or "Fiebre + signos de infección en la herida"
+        symptoms.append("fiebre+herida")
+    elif _high_pain(lower) and _has_fever_signal(lower):
+        escalate = True
+        if severity_rank(Severity.severe) > severity_rank(severity):
+            severity = Severity.severe
+        reason = reason or "Dolor alto + fiebre"
+        symptoms.append("dolor+fiebre")
 
     return SafetyAssessment(
         symptoms=symptoms,
@@ -76,12 +132,13 @@ def apply_safety_overrides(
     escalate_reason: Optional[str],
     patient_state: PatientState,
 ) -> Tuple[bool, Optional[str], PatientState]:
-    """Post-LLM guardrail: never trust the model alone for severe alarms."""
+    """Post-LLM guardrail: never trust the model alone for alarm signals."""
     assessment = assess_message(message)
-    if assessment.escalate and assessment.severity == Severity.severe:
+    if assessment.escalate:
         escalate = True
         escalate_reason = escalate_reason or assessment.escalate_reason
-        patient_state.severity = Severity.severe
+        if severity_rank(assessment.severity) > severity_rank(patient_state.severity):
+            patient_state.severity = assessment.severity
         for symptom in assessment.symptoms:
             if symptom not in patient_state.symptoms:
                 patient_state.symptoms.append(symptom)

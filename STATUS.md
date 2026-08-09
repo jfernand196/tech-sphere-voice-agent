@@ -1,7 +1,7 @@
 # STATUS — Tech Sphere Voice Agent (handoff for humans & agents)
 
 > **Read this file first** before changing code.  
-> Last updated: **2026-08-08** (step 3: demo patient selector + día post-op)  
+> Last updated: **2026-08-08** (step 4: escalate eval harness vs kit labels)  
 > Repo: https://github.com/jfernand196/tech-sphere-voice-agent  
 > Default branch: `main`  
 > Owner GitHub: `jfernand196`  
@@ -117,7 +117,7 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 |---|---|
 | LLM in demo | **Groq OK** (`make smoke-groq` pasó con `llama-3.3-70b-versatile`) |
 | RAG quality | **17 cholecystitis PDFs ingested** (~2k chunks); still hash embeddings (not BGE-M3/Chroma) |
-| Dataset Excel | **12 colecistectomía cases** in `samples/demo_patients.json` + UI selector; eval harness still pending |
+| Dataset Excel | **12 demo cases** in UI; **`make eval-escalate`** scores escalate vs verde/amarillo/rojo |
 | Voice | Browser only; Kokoro/Piper / Groq Whisper not wired |
 | Metrics | Per-turn `latency_ms`; no P50/P95 / tokens rollup in README |
 | Deliverables | Missing diagram image, informe, video |
