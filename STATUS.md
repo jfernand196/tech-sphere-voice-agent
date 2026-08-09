@@ -1,7 +1,7 @@
 # STATUS — Tech Sphere Voice Agent (handoff for humans & agents)
 
 > **Read this file first** before changing code.  
-> Last updated: **2026-08-08** (Groq wired; recruiter-friendly wording — no gate codes in project docs)  
+> Last updated: **2026-08-08** (step 2: cholecystitis PDFs ingested into local RAG)  
 > Repo: https://github.com/jfernand196/tech-sphere-voice-agent  
 > Default branch: `main`  
 > Owner GitHub: `jfernand196`  
@@ -116,7 +116,7 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | Area | Gap |
 |---|---|
 | LLM in demo | **Groq OK** (`make smoke-groq` pasó con `llama-3.3-70b-versatile`) |
-| RAG quality | Hash embeddings (not BGE-M3); no Chroma yet |
+| RAG quality | **17 cholecystitis PDFs ingested** (~2k chunks); still hash embeddings (not BGE-M3/Chroma) |
 | Dataset Excel | Not yet driving patient picker / ground-truth eval harness |
 | Voice | Browser only; Kokoro/Piper / Groq Whisper not wired |
 | Metrics | Per-turn `latency_ms`; no P50/P95 / tokens rollup in README |
