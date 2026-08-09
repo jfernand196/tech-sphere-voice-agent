@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { endCall, sendTurn, startCall } from "../api";
+import { endCall, listDemoPatients, sendTurn, startCall } from "../api";
+import { errMessage } from "../errors";
 import { canUseSpeechRecognition, listenOnce } from "../speech";
-import type { CallMessage, CallSummary } from "../types";
-
-export type ChatItem = CallMessage & { latency_ms?: number | null };
+import type { ChatItem, CallSummary, DemoPatient } from "../types";
 
 type Options = {
   onAgentReply?: (text: string) => void;
 };
 
 export function useCallSession({ onAgentReply }: Options = {}) {
+  const [demoPatients, setDemoPatients] = useState<DemoPatient[]>([]);
+  const [selectedCaseId, setSelectedCaseId] = useState("");
   const [patientName, setPatientName] = useState("Ana Pérez");
-  const [procedure, setProcedure] = useState("apendicectomía");
+  const [procedure, setProcedure] = useState("colecistectomía");
+  const [diaPostop, setDiaPostop] = useState(3);
+  const [demoHint, setDemoHint] = useState("");
   const [callId, setCallId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatItem[]>([]);
@@ -25,17 +28,52 @@ export function useCallSession({ onAgentReply }: Options = {}) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    void listDemoPatients()
+      .then((rows) => {
+        setDemoPatients(rows);
+        if (rows[0]) applyCase(rows[0]);
+      })
+      .catch(() => {
+        // Manual form still works without the selector catalog.
+      });
+  }, []);
+
+  function applyCase(row: DemoPatient) {
+    setSelectedCaseId(row.id);
+    setPatientName(row.nombre);
+    setProcedure(row.procedimiento);
+    setDiaPostop(row.dia_postop);
+    setDemoHint(row.demo_hint || "");
+  }
+
+  function selectCase(caseId: string) {
+    setSelectedCaseId(caseId);
+    if (!caseId) {
+      setDemoHint("");
+      return;
+    }
+    const row = demoPatients.find((p) => p.id === caseId);
+    if (row) applyCase(row);
+  }
+
+  /** Switch to free-form editing; keep current field values. */
+  function beginManualEdit() {
+    setSelectedCaseId("");
+    setDemoHint("");
+  }
+
   async function start() {
     setError(null);
     setSummary(null);
     setBusy(true);
     try {
-      const res = await startCall(patientName, procedure);
+      const res = await startCall(patientName, procedure, diaPostop);
       setCallId(res.call_id);
       setMessages([{ role: "agent", content: res.greeting }]);
       onAgentReply?.(res.greeting);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo iniciar la llamada");
+      setError(errMessage(e, "No se pudo iniciar la llamada"));
     } finally {
       setBusy(false);
     }
@@ -64,7 +102,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
       ]);
       onAgentReply?.(turn.reply);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error en el turno");
+      setError(errMessage(e, "Error en el turno"));
     } finally {
       setBusy(false);
     }
@@ -81,7 +119,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
       const transcript = await listenOnce("es-CO");
       if (transcript) await send(transcript);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error de micrófono");
+      setError(errMessage(e, "Error de micrófono"));
     } finally {
       setListening(false);
     }
@@ -97,7 +135,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
       setMessages([]);
       setInput("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo cerrar la llamada");
+      setError(errMessage(e, "No se pudo cerrar la llamada"));
     } finally {
       setBusy(false);
     }
@@ -114,10 +152,17 @@ export function useCallSession({ onAgentReply }: Options = {}) {
   }
 
   return {
+    demoPatients,
+    selectedCaseId,
+    selectCase,
+    beginManualEdit,
     patientName,
     setPatientName,
     procedure,
     setProcedure,
+    diaPostop,
+    setDiaPostop,
+    demoHint,
     callId,
     input,
     setInput,

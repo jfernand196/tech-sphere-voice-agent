@@ -80,11 +80,14 @@ Adapters: `backend/app/agent/llm_groq.py`, `llm_gemini.py`. Factory: `factory.py
 
 ## Demo checklist
 
-1. **Voice** → Call tab → speak / listen.  
-2. **RAG** → clinical question; reply includes `sources`.  
-3. **Live knowledge** → upload PDF/txt → ask again → delete → agent stops using it.  
-4. **Escalate** → “no puedo respirar” / “quiero un doctor”.  
-5. **Summary** → End call → JSON + summary card.
+1. **Demo case** → Call tab → pick a kit patient (e.g. day 7 · rojo) or edit a free patient.  
+2. **Voice / text** → speak or type symptoms from the on-screen hint (hint is actor-only, not sent to the model).  
+3. **RAG** → clinical question; reply includes `sources`.  
+4. **Live knowledge** → upload PDF/txt → ask again → delete → agent stops using it.  
+5. **Escalate** → “no puedo respirar” / “quiero un doctor”.  
+6. **Summary** → End call → JSON + summary card.
+
+Rebuild the selector catalog after refreshing the official kit: `make export-demo`.
 
 ## Tests
 

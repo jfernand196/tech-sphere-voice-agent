@@ -30,6 +30,9 @@ export type CallMessage = {
   patient_state?: PatientState | null;
 };
 
+/** Chat bubble model used by the call UI (API message + optional latency). */
+export type ChatItem = CallMessage & { latency_ms?: number | null };
+
 export type CallSummary = {
   call_id: string;
   patient_name: string;
@@ -49,4 +52,17 @@ export type DocumentInfo = {
   filename: string;
   chunk_count: number;
   created_at: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type DemoPatient = {
+  id: string;
+  paciente_id: string;
+  nombre: string;
+  procedimiento: string;
+  dia_postop: number;
+  label: string;
+  demo_hint: string;
+  ciudad?: string;
+  eps?: string;
 };

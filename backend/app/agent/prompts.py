@@ -31,6 +31,7 @@ def build_user_prompt(
     *,
     patient_name: str,
     procedure: str,
+    dia_postop: int,
     message: str,
     history: List[Dict],
     rag_context: List[Dict],
@@ -45,6 +46,7 @@ def build_user_prompt(
 
     return f"""Paciente: {patient_name}
 Procedimiento: {procedure}
+Día post-operatorio: {dia_postop}
 
 Historial reciente:
 {history_lines}

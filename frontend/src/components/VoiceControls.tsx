@@ -8,9 +8,17 @@ type Props = {
   onVoiceNameChange: (value: string) => void;
   speechSupported: boolean;
   onPreview: () => void;
+  /** When true, controls sit behind a disclosure (keeps setup/live lighter). */
+  collapsed?: boolean;
 };
 
-export default function VoiceControls({
+function shortVoiceName(name: string): string {
+  if (!name) return "sin voz";
+  const base = name.split("(")[0]?.trim() || name;
+  return base.length > 22 ? `${base.slice(0, 21)}…` : base;
+}
+
+function Controls({
   voiceOut,
   onVoiceOutChange,
   voices,
@@ -18,7 +26,7 @@ export default function VoiceControls({
   onVoiceNameChange,
   speechSupported,
   onPreview,
-}: Props) {
+}: Omit<Props, "collapsed">) {
   return (
     <div className="voice-bar">
       <label className="toggle">
@@ -60,5 +68,27 @@ export default function VoiceControls({
         Probar voz
       </button>
     </div>
+  );
+}
+
+export default function VoiceControls(props: Props) {
+  const { collapsed, voiceOut, voiceName, ...rest } = props;
+  if (!collapsed) {
+    return (
+      <Controls
+        voiceOut={voiceOut}
+        voiceName={voiceName}
+        {...rest}
+      />
+    );
+  }
+
+  const summary = `Voz: ${shortVoiceName(voiceName)} · ${voiceOut ? "activada" : "apagada"}`;
+
+  return (
+    <details className="voice-details">
+      <summary>{summary}</summary>
+      <Controls voiceOut={voiceOut} voiceName={voiceName} {...rest} />
+    </details>
   );
 }

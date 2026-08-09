@@ -1,16 +1,11 @@
 import { useState } from "react";
+import { severityText } from "../clinicalFormat";
+import { displayDocTitle } from "../knowledgeFormat";
 import type { CallSummary } from "../types";
 
 type Props = {
   summary: CallSummary;
   onNewCall: () => void;
-};
-
-const severityLabel: Record<string, string> = {
-  none: "Sin síntomas",
-  mild: "Leve",
-  moderate: "Moderada",
-  severe: "Severa",
 };
 
 export default function CallSummaryCard({ summary, onNewCall }: Props) {
@@ -41,7 +36,7 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
         </div>
         <div>
           <dt>Severidad</dt>
-          <dd>{severityLabel[summary.severity] ?? summary.severity}</dd>
+          <dd>{severityText(summary.severity)}</dd>
         </div>
         <div>
           <dt>Turnos</dt>
@@ -69,8 +64,8 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
             {summary.sources_used.length ? (
               <ul className="chip-row">
                 {summary.sources_used.map((s) => (
-                  <li key={s.chunk_id} className="chip chip--source">
-                    {s.title}
+                  <li key={s.chunk_id} className="chip chip--source" title={s.title}>
+                    {displayDocTitle(s.title, 42)}
                   </li>
                 ))}
               </ul>

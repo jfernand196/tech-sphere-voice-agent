@@ -1,6 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { deleteDocument, listDocuments, uploadDocument } from "../api";
+import { errMessage } from "../errors";
+import {
+  displayDocTitle,
+  docGroup,
+  fragmentLabel,
+  groupLabel,
+  type DocGroup,
+} from "../knowledgeFormat";
 import type { DocumentInfo } from "../types";
+
+const GROUP_ORDER: DocGroup[] = ["uploaded", "kit", "seed"];
 
 export default function KnowledgeConsole() {
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
@@ -10,6 +20,8 @@ export default function KnowledgeConsole() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [query, setQuery] = useState("");
+  const [kitOpen, setKitOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function refresh() {
@@ -18,10 +30,29 @@ export default function KnowledgeConsole() {
   }
 
   useEffect(() => {
-    void refresh().catch((e) =>
-      setError(e instanceof Error ? e.message : "Error cargando documentos"),
-    );
+    void refresh().catch((e) => setError(errMessage(e, "Error cargando documentos")));
   }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return docs;
+    return docs.filter((d) => {
+      const hay = `${d.title} ${d.filename} ${String(d.metadata?.scenario ?? "")}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [docs, query]);
+
+  const grouped = useMemo(() => {
+    const map: Record<DocGroup, DocumentInfo[]> = {
+      uploaded: [],
+      kit: [],
+      seed: [],
+    };
+    for (const d of filtered) {
+      map[docGroup(d)].push(d);
+    }
+    return map;
+  }, [filtered]);
 
   function takeFile(next: File | null) {
     setFile(next);
@@ -37,31 +68,65 @@ export default function KnowledgeConsole() {
     setMessage(null);
     try {
       const doc = await uploadDocument(file, title || file.name);
-      setMessage(`Indexado: ${doc.title} · ${doc.chunk_count} fragmentos`);
+      setMessage(
+        `Indexado: ${displayDocTitle(doc.title, 48)} · ${fragmentLabel(doc.chunk_count)}`,
+      );
       setFile(null);
       setTitle("");
       if (inputRef.current) inputRef.current.value = "";
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al subir");
+      setError(errMessage(e, "Error al subir"));
     } finally {
       setBusy(false);
     }
   }
 
-  async function handleDelete(docId: string) {
+  async function handleDelete(doc: DocumentInfo) {
+    const short = displayDocTitle(doc.title, 40);
+    if (!window.confirm(`¿Eliminar “${short}”? El agente dejará de usarlo.`)) {
+      return;
+    }
     setBusy(true);
     setError(null);
     setMessage(null);
     try {
-      await deleteDocument(docId);
+      await deleteDocument(doc.doc_id);
       setMessage("Documento eliminado. El agente ya no lo usará en caliente.");
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al eliminar");
+      setError(errMessage(e, "Error al eliminar"));
     } finally {
       setBusy(false);
     }
+  }
+
+  function renderDoc(d: DocumentInfo) {
+    const group = docGroup(d);
+    const scenario =
+      typeof d.metadata?.scenario === "string" ? d.metadata.scenario : null;
+    return (
+      <article key={d.doc_id} className="doc-card">
+        <div className="doc-card__body">
+          <h3 title={d.title}>{displayDocTitle(d.title)}</h3>
+          <p>
+            {scenario ? <span className="doc-tag">{scenario}</span> : null}
+            {group === "seed" ? <span className="doc-tag">base</span> : null}
+            <span>
+              {fragmentLabel(d.chunk_count)} · <code>{d.filename}</code>
+            </span>
+          </p>
+        </div>
+        <button
+          type="button"
+          className="danger"
+          onClick={() => void handleDelete(d)}
+          disabled={busy}
+        >
+          Eliminar
+        </button>
+      </article>
+    );
   }
 
   return (
@@ -69,13 +134,18 @@ export default function KnowledgeConsole() {
       <header className="panel-header">
         <div>
           <h2>Consola de conocimiento</h2>
-          <p>Sube un protocolo y el agente lo aprende al instante. Elimínalo y lo olvida.</p>
+          <p>
+            Sube un protocolo de prueba: el agente lo usa al instante. Elimínalo y lo olvida.
+          </p>
         </div>
         <span className="count-pill">{docs.length} docs</span>
       </header>
 
       <div className="knowledge-layout">
         <div className="upload-card">
+          <p className="upload-card__lead">
+            Para el jurado: sube un .txt/.pdf propio, pregunta en la llamada y luego elimínalo.
+          </p>
           <label>
             Título
             <input
@@ -125,31 +195,59 @@ export default function KnowledgeConsole() {
           </button>
         </div>
 
-        <div className="docs-list">
-          {docs.length === 0 ? (
-            <div className="empty-state">
-              <p>Aún no hay documentos. Sube el primero para alimentar el RAG.</p>
-            </div>
-          ) : (
-            docs.map((d) => (
-              <article key={d.doc_id} className="doc-card enter">
-                <div>
-                  <h3>{d.title}</h3>
-                  <p>
-                    <code>{d.filename}</code> · {d.chunk_count} chunks
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="danger"
-                  onClick={() => void handleDelete(d.doc_id)}
-                  disabled={busy}
-                >
-                  Eliminar
-                </button>
-              </article>
-            ))
-          )}
+        <div className="docs-panel">
+          <label className="docs-search">
+            <span className="sr-only">Buscar documentos</span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por título o archivo…"
+            />
+          </label>
+
+          <div className="docs-list">
+            {filtered.length === 0 ? (
+              <div className="empty-state">
+                <p>
+                  {docs.length === 0
+                    ? "Aún no hay documentos. Sube el primero para alimentar el RAG."
+                    : "Ningún documento coincide con la búsqueda."}
+                </p>
+              </div>
+            ) : (
+              GROUP_ORDER.map((group) => {
+                const items = grouped[group];
+                if (!items.length) return null;
+
+                if (group === "kit") {
+                  return (
+                    <details
+                      key={group}
+                      className="doc-group"
+                      open={kitOpen || Boolean(query.trim())}
+                      onToggle={(e) => setKitOpen((e.target as HTMLDetailsElement).open)}
+                    >
+                      <summary>
+                        {groupLabel(group)}
+                        <span className="doc-group__count">{items.length}</span>
+                      </summary>
+                      <div className="doc-group__list">{items.map(renderDoc)}</div>
+                    </details>
+                  );
+                }
+
+                return (
+                  <section key={group} className="doc-group doc-group--static">
+                    <header className="doc-group__header">
+                      <h3>{groupLabel(group)}</h3>
+                      <span className="doc-group__count">{items.length}</span>
+                    </header>
+                    <div className="doc-group__list">{items.map(renderDoc)}</div>
+                  </section>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
 

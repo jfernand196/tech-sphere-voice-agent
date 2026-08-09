@@ -1,4 +1,4 @@
-.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit test smoke-groq
+.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo test smoke-groq
 
 setup:
 	cd backend && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
@@ -20,6 +20,10 @@ kit-clone:
 #   make ingest-kit ARGS='--scenario cholecystitis --limit 8'
 ingest-kit:
 	cd backend && . .venv/bin/activate && PYTHONPATH=. python scripts/ingest_official_kit.py $(ARGS)
+
+# Rebuild samples/demo_patients.json from official-kit Excels (colecistectomía mix).
+export-demo:
+	cd backend && . .venv/bin/activate && PYTHONPATH=. python scripts/export_demo_patients.py
 
 seed-check:
 	curl -s http://127.0.0.1:8001/health && echo && curl -s http://127.0.0.1:8001/knowledge/documents | python3 -m json.tool
