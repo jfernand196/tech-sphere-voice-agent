@@ -19,11 +19,12 @@ class MockLLMClient:
         *,
         patient_name: str,
         procedure: str,
+        dia_postop: int,
         message: str,
         history: List[Dict[str, str]],
         rag_context: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        _ = (patient_name, procedure, history)
+        _ = (patient_name, procedure, dia_postop, history)
         assessment = assess_message(message)
         lower = message.lower()
         escalate = assessment.escalate

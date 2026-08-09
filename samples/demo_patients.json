@@ -1,0 +1,134 @@
+[
+  {
+    "id": "caso_tray_pac_42_00026_7",
+    "paciente_id": "pac_42_00026",
+    "nombre": "Ana Ángela Sánchez",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 7,
+    "label": "rojo",
+    "demo_hint": "dolor 6/10; temperatura 38.0 °C; herida: secreción purulenta; movilidad: normal",
+    "ciudad": "Bogotá D.C.",
+    "eps": "Famisanar EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00026_14",
+    "paciente_id": "pac_42_00026",
+    "nombre": "Ana Ángela Sánchez",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 14,
+    "label": "rojo",
+    "demo_hint": "dolor 9/10; temperatura 38.0 °C; herida: eritema leve; movilidad: normal",
+    "ciudad": "Bogotá D.C.",
+    "eps": "Famisanar EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00016_1",
+    "paciente_id": "pac_42_00016",
+    "nombre": "Ángela Beatriz Ramírez Martínez",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 1,
+    "label": "amarillo",
+    "demo_hint": "dolor 5/10; temperatura 36.5 °C; herida: eritema leve; movilidad: limitada (esperada)",
+    "ciudad": "Valledupar",
+    "eps": "Nueva EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00001_3",
+    "paciente_id": "pac_42_00001",
+    "nombre": "Jean León Sepúlveda",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 3,
+    "label": "amarillo",
+    "demo_hint": "dolor 5/10; temperatura 37.4 °C; herida: normal; movilidad: normal",
+    "ciudad": "Bogotá D.C.",
+    "eps": "Famisanar EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00006_3",
+    "paciente_id": "pac_42_00006",
+    "nombre": "Manuel Castillo",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 3,
+    "label": "amarillo",
+    "demo_hint": "dolor 5/10; temperatura 37.4 °C; herida: normal; movilidad: normal",
+    "ciudad": "Soacha",
+    "eps": "Sanitas EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00001_7",
+    "paciente_id": "pac_42_00001",
+    "nombre": "Jean León Sepúlveda",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 7,
+    "label": "amarillo",
+    "demo_hint": "dolor 5/10; temperatura 37.4 °C; herida: eritema leve; movilidad: limitada (esperada)",
+    "ciudad": "Bogotá D.C.",
+    "eps": "Famisanar EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00006_7",
+    "paciente_id": "pac_42_00006",
+    "nombre": "Manuel Castillo",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 7,
+    "label": "amarillo",
+    "demo_hint": "dolor 2/10; temperatura 37.2 °C; herida: eritema leve; movilidad: normal",
+    "ciudad": "Soacha",
+    "eps": "Sanitas EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00021_7",
+    "paciente_id": "pac_42_00021",
+    "nombre": "Diego Steven Bonilla",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 7,
+    "label": "amarillo",
+    "demo_hint": "dolor 5/10; temperatura 37.5 °C; herida: eritema leve; movilidad: limitada (esperada)",
+    "ciudad": "Medellín",
+    "eps": "Sura EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00001_1",
+    "paciente_id": "pac_42_00001",
+    "nombre": "Jean León Sepúlveda",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 1,
+    "label": "verde",
+    "demo_hint": "dolor 2/10; temperatura 37.1 °C; herida: normal; movilidad: limitada (esperada)",
+    "ciudad": "Bogotá D.C.",
+    "eps": "Famisanar EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00006_1",
+    "paciente_id": "pac_42_00006",
+    "nombre": "Manuel Castillo",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 1,
+    "label": "verde",
+    "demo_hint": "dolor 3/10; temperatura 37.6 °C; herida: normal; movilidad: normal",
+    "ciudad": "Soacha",
+    "eps": "Sanitas EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00011_1",
+    "paciente_id": "pac_42_00011",
+    "nombre": "Hernando Vásquez Ortiz",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 1,
+    "label": "verde",
+    "demo_hint": "dolor 6/10; temperatura 36.7 °C; herida: normal; movilidad: limitada (esperada)",
+    "ciudad": "Valledupar",
+    "eps": "Coosalud EPS"
+  },
+  {
+    "id": "caso_tray_pac_42_00021_1",
+    "paciente_id": "pac_42_00021",
+    "nombre": "Diego Steven Bonilla",
+    "procedimiento": "colecistectomía",
+    "dia_postop": 1,
+    "label": "verde",
+    "demo_hint": "dolor 4/10; temperatura 36.9 °C; herida: normal; movilidad: normal",
+    "ciudad": "Medellín",
+    "eps": "Sura EPS"
+  }
+]

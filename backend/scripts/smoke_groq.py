@@ -44,6 +44,7 @@ async def main() -> int:
     result = await llm.complete(
         patient_name="María Demo",
         procedure="colecistectomía",
+        dia_postop=3,
         message="Hola, me operaron hace tres días y me duele un poquito la herida, nada grave.",
         history=[],
         rag_context=[],

@@ -24,9 +24,11 @@ def list_calls():
 
 @router.post("/start", response_model=StartCallResponse)
 async def start_call(body: StartCallRequest):
+    day = body.dia_postop
+    day_phrase = f"en el día {day} después de tu {body.procedure}"
     greeting = (
-        f"Hola {body.patient_name}, te llamo para tu seguimiento después de "
-        f"{body.procedure}. ¿Cómo te sientes en este momento?"
+        f"Hola {body.patient_name}, te llamo para tu seguimiento {day_phrase}. "
+        f"¿Cómo te sientes en este momento?"
     )
     record = get_call_service().start(body, greeting=greeting)
     return StartCallResponse(
@@ -60,6 +62,7 @@ async def chat_turn(call_id: str, body: ChatTurnRequest):
     turn = await get_agent_service().respond(
         patient_name=record.patient_name,
         procedure=record.procedure,
+        dia_postop=record.dia_postop,
         message=body.message,
         history=history[:-1],
     )

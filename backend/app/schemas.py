@@ -42,7 +42,22 @@ class AgentTurnResponse(BaseModel):
 class StartCallRequest(BaseModel):
     patient_name: str = "Paciente"
     procedure: str = "procedimiento_generico"
+    dia_postop: int = Field(default=1, ge=0, le=60)
     language: str = "es"
+
+
+class DemoPatient(BaseModel):
+    """Curated case for the call UI selector (from official kit Excels)."""
+
+    id: str
+    paciente_id: str
+    nombre: str
+    procedimiento: str
+    dia_postop: int
+    label: str
+    demo_hint: str = ""
+    ciudad: str = ""
+    eps: str = ""
 
 
 class StartCallResponse(BaseModel):
@@ -84,6 +99,7 @@ class CallRecord(BaseModel):
     call_id: str
     patient_name: str
     procedure: str
+    dia_postop: int = 1
     language: str = "es"
     status: str = "active"
     messages: List[CallMessage] = Field(default_factory=list)

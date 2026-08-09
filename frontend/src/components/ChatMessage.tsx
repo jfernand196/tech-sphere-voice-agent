@@ -1,4 +1,6 @@
-import type { ChatItem } from "../hooks/useCallSession";
+import { severityChip } from "../clinicalFormat";
+import { displayDocTitle } from "../knowledgeFormat";
+import type { ChatItem } from "../types";
 
 type Props = {
   message: ChatItem;
@@ -6,13 +8,16 @@ type Props = {
 
 export default function ChatMessage({ message }: Props) {
   const isAgent = message.role === "agent";
+  const severity = severityChip(message.patient_state?.severity);
 
   return (
     <article className={`bubble ${message.role}`}>
       <header className="bubble__meta">
         <strong>{isAgent ? "Agente" : "Paciente"}</strong>
-        {message.patient_state?.severity && message.patient_state.severity !== "none" ? (
-          <small>sev: {message.patient_state.severity}</small>
+        {severity ? (
+          <span className={`sev-chip sev-chip--${message.patient_state?.severity}`}>
+            {severity}
+          </span>
         ) : null}
         {typeof message.latency_ms === "number" ? (
           <small>{message.latency_ms} ms</small>
@@ -25,8 +30,12 @@ export default function ChatMessage({ message }: Props) {
       {message.sources && message.sources.length > 0 ? (
         <ul className="chip-row">
           {message.sources.map((s) => (
-            <li key={s.chunk_id} className="chip chip--source" title={s.excerpt ?? s.chunk_id}>
-              {s.title}
+            <li
+              key={s.chunk_id}
+              className="chip chip--source"
+              title={s.excerpt ? `${s.title}\n\n${s.excerpt}` : s.title}
+            >
+              {displayDocTitle(s.title, 42)}
             </li>
           ))}
         </ul>

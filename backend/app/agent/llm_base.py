@@ -18,6 +18,7 @@ class PromptedLLMClient(ABC):
         *,
         patient_name: str,
         procedure: str,
+        dia_postop: int,
         message: str,
         history: List[Dict[str, str]],
         rag_context: List[Dict[str, Any]],
@@ -25,6 +26,7 @@ class PromptedLLMClient(ABC):
         user_prompt = build_user_prompt(
             patient_name=patient_name,
             procedure=procedure,
+            dia_postop=dia_postop,
             message=message,
             history=history,
             rag_context=rag_context,

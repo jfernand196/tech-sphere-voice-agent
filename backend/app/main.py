@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import calls, health, knowledge, voice
+from app.api import calls, demo, health, knowledge, voice
 from app.api.deps import get_knowledge_service, settings
 
 
@@ -82,4 +82,5 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(knowledge.router)
 app.include_router(calls.router)
+app.include_router(demo.router)
 app.include_router(voice.router)

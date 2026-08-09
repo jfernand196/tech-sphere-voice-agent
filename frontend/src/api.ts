@@ -1,6 +1,7 @@
 import type {
   AgentTurnResponse,
   CallSummary,
+  DemoPatient,
   DocumentInfo,
 } from "./types";
 
@@ -25,15 +26,28 @@ export function getHealth() {
   }>("/health");
 }
 
-export function startCall(patient_name: string, procedure: string) {
+export function startCall(
+  patient_name: string,
+  procedure: string,
+  dia_postop: number,
+) {
   return request<{ call_id: string; greeting: string; model_id: string }>(
     "/calls/start",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ patient_name, procedure, language: "es" }),
+      body: JSON.stringify({
+        patient_name,
+        procedure,
+        dia_postop,
+        language: "es",
+      }),
     },
   );
+}
+
+export function listDemoPatients() {
+  return request<DemoPatient[]>("/demo/patients");
 }
 
 export function sendTurn(callId: string, message: string) {

@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { formatCaseLabel, humanizeDemoHint } from "../demoFormat";
 import { useAgentVoice } from "../hooks/useAgentVoice";
 import { useCallSession } from "../hooks/useCallSession";
 import CallSummaryCard from "./CallSummaryCard";
@@ -17,11 +18,27 @@ export default function CallPanel() {
   });
 
   const phase = call.callId ? "live" : call.summary ? "ended" : "setup";
+  const selectedDemo = call.demoPatients.find((p) => p.id === call.selectedCaseId);
+  const [editDetails, setEditDetails] = useState(false);
 
   function resetForNewCall() {
     voice.stopAgent();
     call.reset();
+    setEditDetails(false);
   }
+
+  const voiceProps = {
+    voiceOut: voice.voiceOut,
+    onVoiceOutChange: voice.setVoiceOut,
+    voices: voice.voices,
+    voiceName: voice.voiceName,
+    onVoiceNameChange: voice.selectVoice,
+    speechSupported: voice.speechSupported,
+    onPreview: () =>
+      voice.speakAgent(
+        "Hola, soy tu agente de seguimiento post-operatorio. ¿Cómo te sientes hoy?",
+      ),
+  };
 
   return (
     <section className="panel">
@@ -34,7 +51,7 @@ export default function CallPanel() {
           </div>
           <p>
             {phase === "setup"
-              ? "Configura al paciente y empieza la conversación por texto o voz."
+              ? "Elige un caso del kit o un paciente libre, y empieza la conversación."
               : phase === "live"
                 ? "El agente adapta la charla, cita protocolos y decide si alertar."
                 : "Revisa el resumen estructurado antes de una nueva llamada."}
@@ -42,38 +59,109 @@ export default function CallPanel() {
         </div>
       </header>
 
-      <VoiceControls
-        voiceOut={voice.voiceOut}
-        onVoiceOutChange={voice.setVoiceOut}
-        voices={voice.voices}
-        voiceName={voice.voiceName}
-        onVoiceNameChange={voice.selectVoice}
-        speechSupported={voice.speechSupported}
-        onPreview={() =>
-          voice.speakAgent(
-            "Hola, soy tu agente de seguimiento post-operatorio. ¿Cómo te sientes hoy?",
-          )
-        }
-      />
+      {phase === "setup" || phase === "live" ? (
+        <VoiceControls {...voiceProps} collapsed />
+      ) : null}
 
       {phase === "setup" ? (
         <div className="setup-card enter">
-          <div className="form-grid form-grid--2">
-            <label>
-              Paciente
-              <input
-                value={call.patientName}
-                onChange={(e) => call.setPatientName(e.target.value)}
-              />
+          {call.demoPatients.length > 0 ? (
+            <label className="field-block">
+              Caso de demo (kit oficial)
+              <select
+                value={call.selectedCaseId}
+                onChange={(e) => {
+                  call.selectCase(e.target.value);
+                  setEditDetails(false);
+                }}
+              >
+                <option value="">Paciente libre (editar abajo)</option>
+                {call.demoPatients.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre} · día {p.dia_postop} · {formatCaseLabel(p.label)}
+                  </option>
+                ))}
+              </select>
             </label>
-            <label>
-              Procedimiento
-              <input
-                value={call.procedure}
-                onChange={(e) => call.setProcedure(e.target.value)}
-              />
-            </label>
-          </div>
+          ) : null}
+
+          {call.selectedCaseId && !editDetails ? (
+            <div className="case-summary">
+              <div>
+                <strong>{call.patientName}</strong>
+                <span>
+                  {call.procedure} · día {call.diaPostop}
+                  {selectedDemo
+                    ? ` · ${formatCaseLabel(selectedDemo.label)}`
+                    : ""}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setEditDetails(true)}
+              >
+                Editar
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="form-grid form-grid--2">
+                <label>
+                  Paciente
+                  <input
+                    value={call.patientName}
+                    onChange={(e) => {
+                      call.beginManualEdit();
+                      call.setPatientName(e.target.value);
+                    }}
+                  />
+                </label>
+                <label>
+                  Procedimiento
+                  <input
+                    value={call.procedure}
+                    onChange={(e) => {
+                      call.beginManualEdit();
+                      call.setProcedure(e.target.value);
+                    }}
+                  />
+                </label>
+              </div>
+
+              <label className="field-block">
+                Día post-operatorio
+                <input
+                  type="number"
+                  min={0}
+                  max={60}
+                  value={call.diaPostop}
+                  onChange={(e) => {
+                    call.beginManualEdit();
+                    call.setDiaPostop(Number(e.target.value) || 0);
+                  }}
+                />
+              </label>
+            </>
+          )}
+
+          {call.demoHint ? (
+            <p className="demo-hint">
+              Pista para actuar al paciente (no se envía al modelo):{" "}
+              {humanizeDemoHint(call.demoHint)}
+              {selectedDemo?.ciudad || selectedDemo?.eps ? (
+                <>
+                  <br />
+                  <span className="demo-hint__meta">
+                    {[selectedDemo.ciudad, selectedDemo.eps].filter(Boolean).join(" · ")}
+                  </span>
+                </>
+              ) : null}
+            </p>
+          ) : null}
+
+          {call.error ? <p className="error banner-error">{call.error}</p> : null}
+
           <button
             type="button"
             className="btn-block"
@@ -88,8 +176,11 @@ export default function CallPanel() {
       {phase === "live" ? (
         <>
           <div className="call-meta">
-            <span className="call-id">
-              Sesión <code>{call.callId?.slice(0, 8)}</code>
+            <span
+              className="call-meta__patient"
+              title={call.callId ? `Sesión ${call.callId}` : undefined}
+            >
+              {call.patientName} · día {call.diaPostop}
             </span>
             <button
               type="button"
@@ -137,6 +228,8 @@ export default function CallPanel() {
               {call.listening ? "Escuchando…" : "Hablar"}
             </button>
           </div>
+
+          {call.error ? <p className="error banner-error">{call.error}</p> : null}
         </>
       ) : null}
 
@@ -144,7 +237,9 @@ export default function CallPanel() {
         <CallSummaryCard summary={call.summary} onNewCall={resetForNewCall} />
       ) : null}
 
-      {call.error ? <p className="error banner-error">{call.error}</p> : null}
+      {phase === "ended" && call.error ? (
+        <p className="error banner-error">{call.error}</p>
+      ) : null}
     </section>
   );
 }

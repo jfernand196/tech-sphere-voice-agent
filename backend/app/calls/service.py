@@ -48,6 +48,7 @@ class CallService:
             call_id=call_id,
             patient_name=req.patient_name,
             procedure=req.procedure,
+            dia_postop=req.dia_postop,
             language=req.language,
             messages=[
                 CallMessage(role="agent", content=greeting),
