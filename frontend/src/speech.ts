@@ -220,11 +220,25 @@ export async function speak(text: string, options: SpeakOptions = {}): Promise<v
   return speakChain;
 }
 
+function speechErrorMessage(code: string): string {
+  const map: Record<string, string> = {
+    "no-speech":
+      "No se escuchó voz. Pulsa Hablar, espera el permiso del micrófono y habla enseguida (Chrome/Edge).",
+    "audio-capture": "No hay micrófono disponible o está en uso por otra app.",
+    "not-allowed":
+      "Permiso de micrófono denegado. En la barra de la URL, permite el micrófono y recarga.",
+    "network": "El reconocimiento de voz del navegador falló (red). Prueba de nuevo o escribe el mensaje.",
+    "aborted": "Escucha cancelada.",
+    "service-not-allowed": "Este navegador no permite reconocimiento de voz aquí. Usa Chrome o Edge.",
+  };
+  return map[code] || `Error de voz: ${code}`;
+}
+
 export function listenOnce(lang = "es-CO"): Promise<string> {
   return new Promise((resolve, reject) => {
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Ctor) {
-      reject(new Error("Web Speech API no disponible en este navegador"));
+      reject(new Error("Web Speech API no disponible en este navegador. Usa Chrome o Edge."));
       return;
     }
     // Pause TTS so recognition isn't fighting the speaker
@@ -236,9 +250,13 @@ export function listenOnce(lang = "es-CO"): Promise<string> {
     recognition.continuous = false;
     recognition.onresult = (event) => {
       const transcript = event.results[0]?.[0]?.transcript?.trim() || "";
+      if (!transcript) {
+        reject(new Error(speechErrorMessage("no-speech")));
+        return;
+      }
       resolve(transcript);
     };
-    recognition.onerror = (event) => reject(new Error(event.error));
+    recognition.onerror = (event) => reject(new Error(speechErrorMessage(event.error)));
     recognition.onend = () => undefined;
     recognition.start();
   });
