@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Sequence
+
+HISTORY_TURNS = 8
 
 SYSTEM_PROMPT = """Eres un agente de voz de seguimiento post-operatorio en español (Colombia).
 Tu trabajo es:
@@ -9,12 +11,16 @@ Tu trabajo es:
 3) Citar documentos usados en el campo sources (para el equipo clínico; no se leen en voz alta).
 4) Decidir si hay que alertar a un humano (escalate).
 
-Registro al paciente (campo reply):
-- Habla como en una llamada telefónica: claro, cálido, sin jerga técnica.
+Registro al paciente (campo reply) — voz telefónica, NO informe clínico:
+- Máximo 2–3 oraciones cortas (≈40–60 palabras). Una idea por turno.
+- Empatía breve + lo nuevo que aportó este turno + una pregunta o siguiente paso.
+- NO repitas en cada turno la lista completa de síntomas ya dichos.
+- NO digas en cada turno “comunícate con tu médico / ve a urgencias” si ya escalaste;
+  basta una frase corta y pasa a la pregunta siguiente.
 - NUNCA digas ni escribas: RAG, embedding, LLM, prompt, token, API, "conocimiento recuperado",
   ni nombres de herramientas internas.
 - Si no hay evidencia en el material de referencia, di algo como:
-  "No tengo esa indicación en mis protocolos de seguimiento; lo mejor es confirmarlo con tu equipo médico."
+  "No tengo esa indicación en mis protocolos; confírmalo con tu equipo médico."
   No digas que "faltó información en el RAG".
 
 Reglas de seguridad:
@@ -22,6 +28,7 @@ Reglas de seguridad:
 - Escala (escalate=true) ante signos de alarma: dificultad respiratoria, dolor intenso no controlado,
   sangrado abundante, fiebre alta persistente, confusión, dolor torácico, vómito incoercible,
   signos de infección grave, o si el paciente pide hablar con un humano.
+- escalate_reason: una frase corta (≤120 caracteres) para el equipo, no un párrafo.
 
 Responde SIEMPRE en JSON con esta forma exacta:
 {
@@ -34,6 +41,19 @@ Responde SIEMPRE en JSON con esta forma exacta:
 """
 
 
+def _format_history(history: Sequence[Dict]) -> str:
+    lines = [f"- {h['role']}: {h['content']}" for h in history[-HISTORY_TURNS:]]
+    return "\n".join(lines) or "(sin historial)"
+
+
+def _format_rag(rag_context: Sequence[Dict]) -> str:
+    blocks = [
+        f"[{c['chunk_id']}] doc_id={c['doc_id']} title={c['title']}\n{c['text']}"
+        for c in rag_context
+    ]
+    return "\n\n".join(blocks) or "(sin material de referencia)"
+
+
 def build_user_prompt(
     *,
     patient_name: str,
@@ -43,23 +63,15 @@ def build_user_prompt(
     history: List[Dict],
     rag_context: List[Dict],
 ) -> str:
-    history_lines = "\n".join(
-        f"- {h['role']}: {h['content']}" for h in history[-8:]
-    ) or "(sin historial)"
-    rag_lines = "\n\n".join(
-        f"[{c['chunk_id']}] doc_id={c['doc_id']} title={c['title']}\n{c['text']}"
-        for c in rag_context
-    ) or "(sin material de referencia)"
-
     return f"""Paciente: {patient_name}
 Procedimiento: {procedure}
 Día post-operatorio: {dia_postop}
 
 Historial reciente:
-{history_lines}
+{_format_history(history)}
 
 Material de referencia interno (úsalo para fundamentar; NO lo menciones al paciente):
-{rag_lines}
+{_format_rag(rag_context)}
 
 Mensaje actual del paciente:
 {message}

@@ -3,8 +3,10 @@ import { demoHintBullets, formatCaseLabel } from "../demoFormat";
 import { useAgentVoice } from "../hooks/useAgentVoice";
 import { useCallSession } from "../hooks/useCallSession";
 import { useLocale } from "../i18n/LocaleContext";
+import CallComposer from "./CallComposer";
 import CallSummaryCard from "./CallSummaryCard";
 import ChatMessage from "./ChatMessage";
+import ListenBanner from "./ListenBanner";
 import VoiceControls from "./VoiceControls";
 
 export default function CallPanel() {
@@ -187,35 +189,18 @@ export default function CallPanel() {
             {call.messages.map((m, idx) => (
               <ChatMessage key={`${m.role}-${idx}`} message={m} />
             ))}
+            {call.listening ? <ListenBanner /> : null}
             <div ref={call.bottomRef} />
           </div>
 
-          <div className="composer">
-            <input
-              value={call.input}
-              onChange={(e) => call.setInput(e.target.value)}
-              placeholder={t("call.placeholder")}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void call.send();
-              }}
-              disabled={call.busy}
-            />
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => void call.send()}
-              disabled={call.busy || !call.input.trim()}
-            >
-              {t("call.send")}
-            </button>
-            <button
-              type="button"
-              onClick={() => void call.listenAndSend()}
-              disabled={call.busy || call.listening}
-            >
-              {call.listening ? t("call.listening") : t("call.speak")}
-            </button>
-          </div>
+          <CallComposer
+            input={call.input}
+            onInputChange={call.setInput}
+            onSend={() => void call.send()}
+            onListen={() => void call.listenAndSend()}
+            busy={call.busy}
+            listening={call.listening}
+          />
 
           {call.error ? <p className="error banner-error">{call.error}</p> : null}
         </>
