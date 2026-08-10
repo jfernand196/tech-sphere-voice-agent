@@ -40,10 +40,11 @@ export default function CallPanel() {
     onVoiceNameChange: voice.selectVoice,
     speechSupported: voice.speechSupported,
     ttsEngine: voice.ttsEngine,
-    onTtsEngineChange: (engine: "kokoro" | "browser") => {
+    onTtsEngineChange: (engine: "browser" | "kokoro" | "piper") => {
       void voice.selectEngine(engine);
     },
     kokoroReady: voice.kokoroReady,
+    piperReady: voice.piperReady,
     // Preview keeps Spanish — agent language is not tied to UI locale.
     onPreview: () => voice.speakAgent(t("voice.previewText")),
   };

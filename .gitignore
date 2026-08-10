@@ -13,9 +13,11 @@ venv/
 backend/data/uploads/*
 backend/data/vector_store/*
 backend/data/kokoro/*
+backend/data/piper/*
 !backend/data/uploads/.gitkeep
 !backend/data/vector_store/.gitkeep
 !backend/data/kokoro/.gitkeep
+!backend/data/piper/.gitkeep
 backend/data/calls.json
 backend/data/documents.json
 

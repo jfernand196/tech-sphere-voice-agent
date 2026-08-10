@@ -188,14 +188,14 @@ type SpeakOptions = {
   lang?: string;
   voiceName?: string;
   /** Override TTS engine for this utterance (defaults to user preference). */
-  engine?: "kokoro" | "browser";
+  engine?: "browser" | "kokoro" | "piper";
   /** Fires when the first audio chunk actually starts (challenge E2E end mark). */
   onStart?: () => void;
 };
 
 export function stopSpeaking(): void {
   speakToken += 1;
-  void import("./kokoroTts").then((m) => m.stopKokoroAudio());
+  void import("./serverTts").then((m) => m.stopServerTtsAudio());
   if (canUseSpeechSynthesis()) {
     window.speechSynthesis.cancel();
   }
@@ -240,22 +240,29 @@ export async function speak(text: string, options: SpeakOptions = {}): Promise<v
 
   const {
     getPreferredTtsEngine,
-    isKokoroAvailable,
-    speakWithKokoro,
+    isServerEngineAvailable,
+    speakWithServerTts,
     loadTtsCapabilities,
-  } = await import("./kokoroTts");
+  } = await import("./serverTts");
   await loadTtsCapabilities();
 
   const engine = options.engine ?? getPreferredTtsEngine();
-  if (engine === "kokoro" && isKokoroAvailable()) {
+  if (
+    (engine === "kokoro" || engine === "piper") &&
+    isServerEngineAvailable(engine)
+  ) {
     try {
-      await speakWithKokoro(prepared, {
+      await speakWithServerTts(prepared, {
+        engine,
         voiceName: options.voiceName,
         onStart: options.onStart,
       });
       return;
     } catch (err) {
-      console.warn("Kokoro TTS failed; falling back to browser speechSynthesis", err);
+      console.warn(
+        `${engine} TTS failed; falling back to browser speechSynthesis`,
+        err,
+      );
     }
   }
 

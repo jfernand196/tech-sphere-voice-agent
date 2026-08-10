@@ -37,12 +37,14 @@ class KokoroEngine:
     def files_present(self) -> bool:
         return self.model_path.is_file() and self.voices_path.is_file()
 
+    def available(self) -> bool:
+        return self.files_present()
+
     def list_voices(self) -> List[dict]:
         return [{"id": vid, "label": label} for vid, label in SUPPORTED_VOICES]
 
     def status(self) -> dict:
         return {
-            "provider_setting": self.settings.tts_provider.strip().lower(),
             "files_present": self.files_present(),
             "loaded": self._kokoro is not None,
             "model_path": str(self.model_path),

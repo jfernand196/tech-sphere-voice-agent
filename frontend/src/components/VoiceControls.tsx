@@ -1,5 +1,5 @@
 import { useLocale } from "../i18n/LocaleContext";
-import type { TtsEngine } from "../kokoroTts";
+import type { TtsEngine } from "../serverTts";
 import type { VoiceOption } from "../speech";
 import Disclosure from "./Disclosure";
 
@@ -14,6 +14,7 @@ type Props = {
   ttsEngine: TtsEngine;
   onTtsEngineChange: (engine: TtsEngine) => void;
   kokoroReady: boolean;
+  piperReady: boolean;
   /** When true, controls sit behind a disclosure (keeps setup/live lighter). */
   collapsed?: boolean;
 };
@@ -22,6 +23,11 @@ const KOKORO_SHORT: Record<string, string> = {
   ef_dora: "Dora",
   em_alex: "Alex",
   em_santa: "Santa",
+};
+
+const PIPER_SHORT: Record<string, string> = {
+  "es_MX-ald-medium": "Ald",
+  "es_MX-claude-high": "Claude",
 };
 
 /** Friendly label for summaries — never raw ids like ef_dora. */
@@ -37,14 +43,29 @@ function friendlyVoiceLabel(
 
   if (engine === "kokoro" || /^(ef_|em_)/i.test(voiceName)) {
     if (KOKORO_SHORT[voiceName]) return KOKORO_SHORT[voiceName];
-    // "Kokoro Dora (ES · mujer)" → "Dora"
     const given = raw.match(/^Kokoro\s+(\S+)/i);
     if (given) return given[1];
     return raw.split("(")[0]?.trim() || "Kokoro";
   }
 
+  if (engine === "piper" || /^es_[A-Z]{2}-/i.test(voiceName)) {
+    if (PIPER_SHORT[voiceName]) return PIPER_SHORT[voiceName];
+    const given = raw.match(/^Piper\s+(\S+)/i);
+    if (given) return given[1];
+    return raw.split("(")[0]?.trim() || "Piper";
+  }
+
   const base = raw.split("(")[0]?.trim() || raw;
   return base.length > 28 ? `${base.slice(0, 27)}…` : base;
+}
+
+function engineShortLabel(
+  engine: TtsEngine,
+  t: (key: "voice.engineBrowserShort" | "voice.engineKokoroShort" | "voice.enginePiperShort") => string,
+): string {
+  if (engine === "kokoro") return t("voice.engineKokoroShort");
+  if (engine === "piper") return t("voice.enginePiperShort");
+  return t("voice.engineBrowserShort");
 }
 
 function Controls({
@@ -58,8 +79,10 @@ function Controls({
   ttsEngine,
   onTtsEngineChange,
   kokoroReady,
+  piperReady,
 }: Omit<Props, "collapsed">) {
   const { t } = useLocale();
+  const showEngineSelect = kokoroReady || piperReady;
   return (
     <div className="voice-bar">
       <label className="toggle">
@@ -72,7 +95,7 @@ function Controls({
         <span>{t("voice.speakReplies")}</span>
       </label>
 
-      {kokoroReady ? (
+      {showEngineSelect ? (
         <label className="voice-select">
           <span className="voice-select__label">{t("voice.engineLabel")}</span>
           <select
@@ -81,7 +104,12 @@ function Controls({
             onChange={(e) => onTtsEngineChange(e.target.value as TtsEngine)}
           >
             <option value="browser">{t("voice.engineBrowser")}</option>
-            <option value="kokoro">{t("voice.engineKokoro")}</option>
+            {kokoroReady ? (
+              <option value="kokoro">{t("voice.engineKokoro")}</option>
+            ) : null}
+            {piperReady ? (
+              <option value="piper">{t("voice.enginePiper")}</option>
+            ) : null}
           </select>
         </label>
       ) : null}
@@ -146,10 +174,7 @@ export default function VoiceControls(props: Props) {
     t("voice.none"),
     ttsEngine,
   );
-  const engineLabel =
-    ttsEngine === "kokoro"
-      ? t("voice.engineKokoroShort")
-      : t("voice.engineBrowserShort");
+  const engineLabel = engineShortLabel(ttsEngine, t);
   const status = voiceOut
     ? t("voice.summaryOnEngine", { engine: engineLabel, name })
     : t("voice.summaryOffEngine", { engine: engineLabel, name });

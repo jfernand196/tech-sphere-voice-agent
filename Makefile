@@ -1,6 +1,6 @@
-.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq verify warm-embed warm-kokoro
+.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq verify warm-embed warm-kokoro warm-piper
 
-# Kokoro TTS needs Python ≥3.10 (onnxruntime≥1.20). Prefer 3.12 when present.
+# Kokoro/Piper TTS need Python ≥3.10 (onnxruntime≥1.20). Prefer 3.12 when present.
 PYTHON ?= $(shell command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3)
 
 setup:
@@ -9,6 +9,7 @@ setup:
 	cp -n .env.example backend/.env || true
 	$(MAKE) warm-embed
 	$(MAKE) warm-kokoro
+	$(MAKE) warm-piper
 
 # Pre-download ONNX MiniLM (~220 MB) so cold-start clock doesn't pay the first-embed download.
 warm-embed: ## Pre-download embedding model
@@ -17,6 +18,10 @@ warm-embed: ## Pre-download embedding model
 # Download Kokoro int8 (~88 MB) + voices (~27 MB) and warm ONNX.
 warm-kokoro: ## Pre-download Kokoro TTS model
 	cd backend && . .venv/bin/activate && PYTHONPATH=. python scripts/warm_kokoro.py
+
+# Download Piper Spanish MX voices (~120 MB) and warm ONNX.
+warm-piper: ## Pre-download Piper TTS voices
+	cd backend && . .venv/bin/activate && PYTHONPATH=. python scripts/warm_piper.py
 
 backend:
 	cd backend && . .venv/bin/activate && PYTHONPATH=. uvicorn app.main:app --reload --host 127.0.0.1 --port 8001

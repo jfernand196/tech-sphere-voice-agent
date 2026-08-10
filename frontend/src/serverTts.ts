@@ -1,23 +1,33 @@
-/** Server-side Kokoro TTS (WAV via /api/voice/tts) with browser fallback seam. */
+/** Server-side TTS (Kokoro / Piper WAV via /api/voice/tts) + browser preference. */
 
-export type TtsEngine = "kokoro" | "browser";
+export type TtsEngine = "browser" | "kokoro" | "piper";
+export type ServerTtsEngine = "kokoro" | "piper";
 
-export type KokoroVoiceOption = {
+export type ServerVoiceOption = {
   name: string;
   lang: string;
   label: string;
 };
 
+type EngineCaps = {
+  available?: boolean;
+  default_voice?: string;
+  voices?: Array<{ id: string; label: string }>;
+};
+
 export type TtsCapabilities = {
-  mode: "kokoro" | "browser" | string;
-  kokoro?: {
-    files_present?: boolean;
-    default_voice?: string;
-    voices?: Array<{ id: string; label: string }>;
+  engines?: {
+    browser?: EngineCaps;
+    kokoro?: EngineCaps;
+    piper?: EngineCaps;
   };
 };
 
 const TTS_ENGINE_KEY = "tsva.ttsEngine";
+const FALLBACK_VOICE: Record<ServerTtsEngine, string> = {
+  kokoro: "ef_dora",
+  piper: "es_MX-ald-medium",
+};
 
 let cachedCaps: TtsCapabilities | null = null;
 let currentAudio: HTMLAudioElement | null = null;
@@ -30,6 +40,10 @@ function haltCurrentAudio(): void {
   currentAudio = null;
 }
 
+function engineCaps(engine: ServerTtsEngine): EngineCaps {
+  return cachedCaps?.engines?.[engine] ?? {};
+}
+
 export async function loadTtsCapabilities(
   force = false,
 ): Promise<TtsCapabilities> {
@@ -39,37 +53,40 @@ export async function loadTtsCapabilities(
     if (!res.ok) throw new Error(res.statusText);
     cachedCaps = (await res.json()) as TtsCapabilities;
   } catch {
-    cachedCaps = { mode: "browser" };
+    cachedCaps = { engines: { browser: { available: true } } };
   }
   return cachedCaps;
 }
 
-/** Server can run Kokoro (models present + provider allows it). */
-export function isKokoroAvailable(): boolean {
-  return cachedCaps?.mode === "kokoro";
+export function isServerEngineAvailable(engine: TtsEngine): boolean {
+  if (engine === "browser") return true;
+  return Boolean(engineCaps(engine).available);
 }
 
-export function listKokoroVoices(): KokoroVoiceOption[] {
-  const voices = cachedCaps?.kokoro?.voices ?? [];
-  return voices.map((v) => ({
+export function listServerVoices(engine: ServerTtsEngine): ServerVoiceOption[] {
+  return (engineCaps(engine).voices ?? []).map((v) => ({
     name: v.id,
     lang: "es",
     label: v.label,
   }));
 }
 
-export function defaultKokoroVoice(): string {
-  return cachedCaps?.kokoro?.default_voice || listKokoroVoices()[0]?.name || "ef_dora";
+export function defaultServerVoice(engine: ServerTtsEngine): string {
+  return (
+    engineCaps(engine).default_voice ||
+    listServerVoices(engine)[0]?.name ||
+    FALLBACK_VOICE[engine]
+  );
 }
 
 /**
  * User preference for TTS engine.
- * Default is browser (lower latency) when Web Speech exists; Kokoro is opt-in quality.
+ * Default is browser (lower latency); Kokoro/Piper are opt-in when warmed.
  */
 export function getPreferredTtsEngine(): TtsEngine {
   const saved = localStorage.getItem(TTS_ENGINE_KEY);
-  if (saved === "kokoro" || saved === "browser") {
-    if (saved === "kokoro" && !isKokoroAvailable()) return "browser";
+  if (saved === "kokoro" || saved === "piper" || saved === "browser") {
+    if (saved !== "browser" && !isServerEngineAvailable(saved)) return "browser";
     return saved;
   }
   return "browser";
@@ -79,17 +96,18 @@ export function setPreferredTtsEngine(engine: TtsEngine): void {
   localStorage.setItem(TTS_ENGINE_KEY, engine);
 }
 
-export function stopKokoroAudio(): void {
+export function stopServerTtsAudio(): void {
   audioToken += 1;
   haltCurrentAudio();
 }
 
-export async function speakWithKokoro(
+export async function speakWithServerTts(
   text: string,
   options: {
+    engine: ServerTtsEngine;
     voiceName?: string;
     onStart?: () => void;
-  } = {},
+  },
 ): Promise<void> {
   const cleaned = text.trim();
   if (!cleaned) return;
@@ -102,7 +120,8 @@ export async function speakWithKokoro(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text: cleaned,
-      voice: options.voiceName || defaultKokoroVoice(),
+      engine: options.engine,
+      voice: options.voiceName || defaultServerVoice(options.engine),
     }),
   });
   if (!res.ok) {
@@ -127,7 +146,7 @@ export async function speakWithKokoro(
     audio.onerror = () => {
       URL.revokeObjectURL(url);
       if (currentAudio === audio) currentAudio = null;
-      reject(new Error("No se pudo reproducir el audio de Kokoro."));
+      reject(new Error(`No se pudo reproducir el audio de ${options.engine}.`));
     };
     void audio.play().catch(reject);
   });
