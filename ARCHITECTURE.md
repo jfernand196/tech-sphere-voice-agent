@@ -39,7 +39,7 @@ flowchart LR
 | Factory | `backend/app/agent/factory.py` |
 | Safety | `backend/app/agent/safety.py` |
 | Prompts | `backend/app/agent/prompts.py` |
-| RAG store | `backend/app/rag/store.py` (hash cosine + BM25 → RRF hybrid) |
+| RAG store | `backend/app/rag/store.py` (MiniLM 384-d cosine + BM25 → RRF; `EMBED_PROVIDER=hash` rollback) |
 
 **Allowed LLM only:** Gemini Flash · Llama via Groq · local Llama/Phi. Anthropic is rejected in `factory.py`.
 
@@ -109,13 +109,15 @@ Calibrated with `make eval-escalate` against kit verde/amarillo/rojo labels.
 ```mermaid
 flowchart LR
   Upload["UI upload<br/>.txt / .md / .pdf"] --> Ingest["KnowledgeService.ingest"]
-  Ingest --> Chunk["chunk + hash embed<br/>LocalVectorStore"]
+  Ingest --> Chunk["chunk + MiniLM embed<br/>LocalVectorStore"]
   Chunk --> Index[(vector_store)]
-  Ask["Patient question"] --> Hybrid["hybrid search<br/>cosine + BM25 → RRF"]
+  Ask["Patient question"] --> Hybrid["hybrid search<br/>MiniLM cosine + BM25 → RRF"]
   Hybrid --> Index
   Delete["UI delete doc"] --> Drop["KnowledgeService.delete"]
   Drop --> Index
 ```
+
+Embeddings: `backend/app/rag/embeddings.py` — default `fastembed` + `paraphrase-multilingual-MiniLM-L12-v2` (384-d, ONNX). Dim mismatch clears vectors and re-ingests from `metadata["path"]` on startup.
 
 API: `POST /knowledge/documents` · `POST /knowledge/query` · `DELETE /knowledge/documents/{doc_id}`  
 (`backend/app/api/knowledge.py`)
@@ -159,6 +161,7 @@ From `backend/.env` (see `.env.example`):
 | `LLM_PROVIDER` | `groq` (default for demo) · `gemini` · `mock` |
 | `MODEL_ID` | e.g. `llama-3.3-70b-versatile` |
 | `GROQ_API_KEY` / `GEMINI_API_KEY` | Cloud credentials |
+| `EMBED_PROVIDER` | `fastembed` (default) · `hash` (offline rollback) |
 | `CORS_ORIGINS` | UI origin |
 | `DATA_DIR` | Uploads + vector store + calls JSON |
 
@@ -169,4 +172,4 @@ From `backend/.env` (see `.env.example`):
 - Real telephony / hospital HIS
 - Enterprise auth / roles
 - Server-side STT/TTS (browser Web Speech only today)
-- External vector DB (local hash embeddings; upgrade path noted in STATUS)
+- External vector DB (local MiniLM via fastembed; Chroma/BGE-M3 left as future work)

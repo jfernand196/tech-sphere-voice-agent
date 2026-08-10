@@ -1,9 +1,12 @@
-"""Hybrid BM25 + hash-cosine retrieval."""
+"""Hybrid BM25 + embedding-cosine retrieval (hash by default in unit tests)."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
+from app.rag.embeddings import HashEmbedder
 from app.rag.store import LocalVectorStore, bm25_scores, rrf_fuse
 
 
@@ -24,7 +27,11 @@ def test_rrf_fuse_boosts_agreement() -> None:
 
 
 def test_hybrid_search_finds_unique_protocol(tmp_path: Path) -> None:
-    store = LocalVectorStore(tmp_path / "docs.json", tmp_path / "vectors")
+    store = LocalVectorStore(
+        tmp_path / "docs.json",
+        tmp_path / "vectors",
+        embedder=HashEmbedder(),
+    )
     store.add_document(
         title="Cuidados generales",
         filename="a.txt",
@@ -51,7 +58,11 @@ def test_hybrid_search_finds_unique_protocol(tmp_path: Path) -> None:
 
 
 def test_hybrid_search_clinical_keywords(tmp_path: Path) -> None:
-    store = LocalVectorStore(tmp_path / "docs.json", tmp_path / "vectors")
+    store = LocalVectorStore(
+        tmp_path / "docs.json",
+        tmp_path / "vectors",
+        embedder=HashEmbedder(),
+    )
     store.add_document(
         title="Alarma infección",
         filename="inf.txt",
@@ -69,3 +80,72 @@ def test_hybrid_search_clinical_keywords(tmp_path: Path) -> None:
     hits = store.search("tengo fiebre y secreción purulenta en la herida", top_k=1)
     assert hits
     assert hits[0][0].title == "Alarma infección"
+
+
+def test_dim_mismatch_marks_reembed(tmp_path: Path) -> None:
+    store = LocalVectorStore(
+        tmp_path / "docs.json",
+        tmp_path / "vectors",
+        embedder=HashEmbedder(),
+    )
+    store.add_document(
+        title="Protocolo",
+        filename="p.txt",
+        text="Dolor abdominal postoperatorio y fiebre leve.",
+        metadata={"path": str(tmp_path / "p.txt")},
+    )
+    assert store._chunks
+    assert len(store._chunks[0].embedding) == 256
+
+    # Simulate load with a different embedder dim (384).
+    class _Fake384:
+        name = "fake384"
+        dim = 384
+
+        def embed_query(self, text: str):
+            return [0.0] * 384
+
+        def embed_documents(self, texts):
+            return [[0.0] * 384 for _ in texts]
+
+        def warmup(self) -> None:
+            return None
+
+    store2 = LocalVectorStore(
+        tmp_path / "docs.json",
+        tmp_path / "vectors",
+        embedder=_Fake384(),
+    )
+    assert store2.needs_reembed is True
+    assert store2._chunks == []
+    assert store2.list_documents()  # catalog preserved
+
+
+@pytest.mark.slow
+def test_fastembed_indexes_and_retrieves(tmp_path: Path) -> None:
+    """Semantic smoke: synonym query should still hit the clinical chunk."""
+    from app.rag.embeddings import FastembedEmbedder
+
+    store = LocalVectorStore(
+        tmp_path / "docs.json",
+        tmp_path / "vectors",
+        embedder=FastembedEmbedder(),
+    )
+    store.add_document(
+        title="Síntomas abdominales",
+        filename="abd.txt",
+        text=(
+            "El dolor abdominal postoperatorio puede ser normal si es leve. "
+            "Malestar intenso con fiebre requiere evaluación."
+        ),
+    )
+    store.add_document(
+        title="Cuidado de pies",
+        filename="pies.txt",
+        text="Mantener los pies elevados y usar medias de compresión según indicación.",
+    )
+
+    hits = store.search("malestar en el abdomen", top_k=1)
+    assert hits
+    assert hits[0][0].title == "Síntomas abdominales"
+    assert "abdominal" in hits[0][0].text.lower() or "abdomen" in hits[0][0].text.lower()
