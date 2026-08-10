@@ -33,8 +33,6 @@ export default function CallPanel() {
   }
 
   const voiceProps = {
-    voiceOut: voice.voiceOut,
-    onVoiceOutChange: voice.setVoiceOut,
     voices: voice.voices,
     voiceName: voice.voiceName,
     onVoiceNameChange: voice.selectVoice,

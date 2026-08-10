@@ -57,8 +57,6 @@ export const en: Record<MessageKey, string> = {
   "call.errorNoSpeechApi":
     "Your browser does not support speech recognition. Use Chrome and type instead.",
 
-  "voice.agentVoice": "Agent speaks replies",
-  "voice.agentVoiceAria": "Turn agent voice on or off",
   "voice.selectAria": "Select voice",
   "voice.engineAria": "Speech engine",
   "voice.engineLabel": "Engine",
@@ -72,8 +70,7 @@ export const en: Record<MessageKey, string> = {
   "voice.loading": "Loading voices…",
   "voice.preview": "Preview voice",
   "voice.settings": "Voice settings",
-  "voice.summaryOnEngine": "{engine} · {name} · on",
-  "voice.summaryOffEngine": "{engine} · {name} · off",
+  "voice.summaryEngine": "{engine} · {name}",
   "voice.none": "no voice",
   "voice.previewText":
     "Hola, soy tu agente de seguimiento post-operatorio. ¿Cómo te sientes hoy?",
