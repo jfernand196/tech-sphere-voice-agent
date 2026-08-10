@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .venv/
+.venv*/
 venv/
 .env
 *.egg-info/
@@ -17,7 +18,6 @@ backend/data/kokoro/*
 !backend/data/kokoro/.gitkeep
 backend/data/calls.json
 backend/data/documents.json
-backend/.venv-py39.bak/
 
 # Official challenge kit (~127MB dataset+PDFs). Clone locally; do not commit.
 # make kit-clone  →  ./official-kit

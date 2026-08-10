@@ -46,6 +46,7 @@ export default function App() {
             <p className="brand">{t("app.brand")}</p>
             <h1>{t("app.title")}</h1>
             <p className="lede">{t("app.lede")}</p>
+            <p className="byline">{t("app.byline")}</p>
             {locale === "en" ? <p className="agent-note">{t("app.agentNote")}</p> : null}
           </div>
           <div className="topbar__aside">
