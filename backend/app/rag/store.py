@@ -206,7 +206,9 @@ class LocalVectorStore:
         provider_mismatch = (
             stored_provider is not None and stored_provider != self.embedder.name
         )
-        if self._chunks and (dim_mismatch or provider_mismatch):
+        stale_embedder = dim_mismatch or provider_mismatch
+
+        if self._chunks and stale_embedder:
             # Keep document catalog; wipe vectors so lifespan can re-ingest from paths.
             self._chunks = []
             for doc_id, doc in list(self._documents.items()):
@@ -221,6 +223,13 @@ class LocalVectorStore:
             self.needs_reembed = True
             self._persist()
             self._write_meta()
+        elif not self._chunks and self._documents:
+            # Empty index with a leftover catalog (interrupted rebuild / wiped vectors).
+            # Previously this never set needs_reembed because the wipe branch required
+            # non-empty chunks — so restarts skipped rebuild forever.
+            self.needs_reembed = True
+            if stale_embedder or not self.meta_path.exists():
+                self._write_meta()
         elif not self.meta_path.exists():
             self._write_meta()
 

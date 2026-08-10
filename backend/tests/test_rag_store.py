@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -119,6 +120,38 @@ def test_dim_mismatch_marks_reembed(tmp_path: Path) -> None:
     assert store2.needs_reembed is True
     assert store2._chunks == []
     assert store2.list_documents()  # catalog preserved
+
+
+def test_empty_chunks_with_catalog_marks_reembed(tmp_path: Path) -> None:
+    """Catalog without vectors must rebuild (not stay stuck empty forever)."""
+    docs_path = tmp_path / "docs.json"
+    vec_dir = tmp_path / "vectors"
+    vec_dir.mkdir()
+    docs_path.write_text(
+        json.dumps(
+            [
+                {
+                    "doc_id": "d1",
+                    "title": "Herida",
+                    "filename": "h.txt",
+                    "chunk_count": 3,
+                    "created_at": "2026-01-01T00:00:00",
+                    "metadata": {"path": str(tmp_path / "h.txt")},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (vec_dir / "chunks.json").write_text("[]", encoding="utf-8")
+    (vec_dir / "embed_meta.json").write_text(
+        json.dumps({"provider": "hash", "dim": 256}),
+        encoding="utf-8",
+    )
+
+    store = LocalVectorStore(docs_path, vec_dir, embedder=HashEmbedder())
+    assert store.needs_reembed is True
+    assert store._chunks == []
+    assert store.list_documents()
 
 
 @pytest.mark.slow
