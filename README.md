@@ -4,8 +4,8 @@
 
 Browser voice agent for Colombian post-op follow-up: clinical RAG, hot knowledge console, source citations, escalate-to-human, and structured call summary.
 
-| | |
-|---|---|
+| Item | Value |
+|------|-------|
 | Public repo | https://github.com/jfernand196/tech-sphere-voice-agent |
 | Allowed LLM (default) | **Groq + Llama** `llama-3.3-70b-versatile` |
 | UI | http://127.0.0.1:5173 |
