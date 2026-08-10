@@ -187,6 +187,8 @@ function speakChunk(
 type SpeakOptions = {
   lang?: string;
   voiceName?: string;
+  /** Override TTS engine for this utterance (defaults to user preference). */
+  engine?: "kokoro" | "browser";
   /** Fires when the first audio chunk actually starts (challenge E2E end mark). */
   onStart?: () => void;
 };
@@ -236,12 +238,16 @@ export async function speak(text: string, options: SpeakOptions = {}): Promise<v
   const prepared = prepareSpokenText(text);
   if (!prepared) return;
 
-  const { getCachedTtsMode, speakWithKokoro, loadTtsCapabilities } = await import(
-    "./kokoroTts"
-  );
+  const {
+    getPreferredTtsEngine,
+    isKokoroAvailable,
+    speakWithKokoro,
+    loadTtsCapabilities,
+  } = await import("./kokoroTts");
   await loadTtsCapabilities();
 
-  if (getCachedTtsMode() === "kokoro") {
+  const engine = options.engine ?? getPreferredTtsEngine();
+  if (engine === "kokoro" && isKokoroAvailable()) {
     try {
       await speakWithKokoro(prepared, {
         voiceName: options.voiceName,

@@ -338,8 +338,24 @@ h2 {
   font-weight: 500;
 }
 
+.voice-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.voice-select__label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .voice-select select {
-  min-width: 12rem;
+  min-width: 10.5rem;
+  max-width: 16rem;
   border: 1px solid var(--line);
   border-radius: 0.55rem;
   padding: 0.45rem 0.65rem;

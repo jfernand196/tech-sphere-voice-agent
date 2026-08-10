@@ -8,50 +8,84 @@ import {
 } from "../speech";
 import {
   defaultKokoroVoice,
-  getCachedTtsMode,
+  getPreferredTtsEngine,
+  isKokoroAvailable,
   listKokoroVoices,
   loadTtsCapabilities,
+  setPreferredTtsEngine,
+  type TtsEngine,
 } from "../kokoroTts";
 
 const VOICE_STORAGE_KEY = "tsva.voiceName";
+const BROWSER_VOICE_KEY = "tsva.browserVoiceName";
+const KOKORO_VOICE_KEY = "tsva.kokoroVoiceName";
+
+function voiceKeyFor(engine: TtsEngine): string {
+  return engine === "kokoro" ? KOKORO_VOICE_KEY : BROWSER_VOICE_KEY;
+}
 
 export function useAgentVoice() {
   const [voiceOut, setVoiceOut] = useState(true);
   const [voices, setVoices] = useState<VoiceOption[]>([]);
-  const [ttsMode, setTtsMode] = useState<"kokoro" | "browser">("browser");
-  const [voiceName, setVoiceName] = useState(
-    () => localStorage.getItem(VOICE_STORAGE_KEY) ?? "",
-  );
+  const [ttsEngine, setTtsEngine] = useState<TtsEngine>("browser");
+  const [kokoroReady, setKokoroReady] = useState(false);
+  const [voiceName, setVoiceName] = useState("");
 
   useEffect(() => {
     void (async () => {
       await loadTtsCapabilities();
-      const mode = getCachedTtsMode();
-      setTtsMode(mode);
-      if (mode === "kokoro") {
-        const kokoro = listKokoroVoices();
-        setVoices(kokoro);
-        setVoiceName((current) => {
-          if (current && kokoro.some((v) => v.name === current)) return current;
-          const best = defaultKokoroVoice();
-          if (best) localStorage.setItem(VOICE_STORAGE_KEY, best);
-          return best;
-        });
-        return;
-      }
-      const options = await listSpanishVoices();
-      setVoices(options);
-      setVoiceName((current) => {
-        if (current && options.some((v) => v.name === current)) return current;
-        const best = options[0]?.name ?? "";
-        if (best) localStorage.setItem(VOICE_STORAGE_KEY, best);
-        return best;
-      });
+      const ready = isKokoroAvailable();
+      setKokoroReady(ready);
+      const preferred = getPreferredTtsEngine();
+      const engine: TtsEngine =
+        preferred === "kokoro" && ready ? "kokoro" : "browser";
+      setTtsEngine(engine);
+      await applyEngine(engine);
     })();
   }, []);
 
+  async function applyEngine(engine: TtsEngine) {
+    if (engine === "kokoro" && isKokoroAvailable()) {
+      const kokoro = listKokoroVoices();
+      setVoices(kokoro);
+      const saved =
+        localStorage.getItem(voiceKeyFor("kokoro")) ||
+        localStorage.getItem(VOICE_STORAGE_KEY) ||
+        "";
+      const next =
+        (saved && kokoro.some((v) => v.name === saved) && saved) ||
+        defaultKokoroVoice();
+      setVoiceName(next);
+      if (next) localStorage.setItem(voiceKeyFor("kokoro"), next);
+      return;
+    }
+
+    const options = await listSpanishVoices();
+    setVoices(options);
+    const saved =
+      localStorage.getItem(voiceKeyFor("browser")) ||
+      localStorage.getItem(VOICE_STORAGE_KEY) ||
+      "";
+    const next =
+      (saved && options.some((v) => v.name === saved) && saved) ||
+      options[0]?.name ||
+      "";
+    setVoiceName(next);
+    if (next) localStorage.setItem(voiceKeyFor("browser"), next);
+  }
+
+  async function selectEngine(engine: TtsEngine) {
+    const next: TtsEngine =
+      engine === "kokoro" && isKokoroAvailable() ? "kokoro" : "browser";
+    setPreferredTtsEngine(next);
+    setTtsEngine(next);
+    stopSpeaking();
+    await applyEngine(next);
+  }
+
   function selectVoice(name: string) {
     setVoiceName(name);
+    localStorage.setItem(voiceKeyFor(ttsEngine), name);
     localStorage.setItem(VOICE_STORAGE_KEY, name);
   }
 
@@ -64,9 +98,10 @@ export function useAgentVoice() {
     speechEndedAt?: number,
   ): Promise<number | undefined> {
     if (!voiceOut) return undefined;
-    if (ttsMode === "browser" && !canUseSpeechSynthesis()) return undefined;
+    if (ttsEngine === "browser" && !canUseSpeechSynthesis()) return undefined;
     let e2e: number | undefined;
     await speak(text, {
+      engine: ttsEngine,
       voiceName: voiceName || undefined,
       lang: "es-CO",
       onStart: () => {
@@ -95,7 +130,10 @@ export function useAgentVoice() {
     selectVoice,
     speakAgent,
     stopAgent,
-    ttsMode,
-    speechSupported: ttsMode === "kokoro" || canUseSpeechSynthesis(),
+    ttsEngine,
+    selectEngine,
+    kokoroReady,
+    speechSupported:
+      ttsEngine === "kokoro" ? kokoroReady : canUseSpeechSynthesis(),
   };
 }
