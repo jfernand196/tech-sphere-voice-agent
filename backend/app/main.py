@@ -40,12 +40,13 @@ def seed_sample_knowledge() -> None:
         ),
         None,
     )
-    if seed and seed.metadata.get("seed_version") == 2:
+    # Re-seed if missing, outdated, or catalog exists but chunks were wiped (dim swap).
+    if seed and seed.metadata.get("seed_version") == 2 and seed.chunk_count > 0:
         return
     if seed:
         ks.delete(seed.doc_id)
-    elif docs:
-        # User already has knowledge; don't force-insert the sample.
+    # Don't force-insert if the user already has other knowledge.
+    if ks.list_documents():
         return
 
     ks.ingest_text(
@@ -56,11 +57,20 @@ def seed_sample_knowledge() -> None:
     )
 
 
+def ensure_vector_index() -> None:
+    """After embedder/dim change, rebuild from source paths then seed if empty."""
+    ks = get_knowledge_service()
+    if ks.needs_reembed:
+        rebuilt = ks.rebuild_stale_embeddings()
+        print(f"[rag] re-embedded {rebuilt} document(s) for provider={ks.embedder.name}")
+    seed_sample_knowledge()
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    # Dirs are created in get_settings(); lifespan only seeds knowledge.
+    # Dirs are created in get_settings(); lifespan rebuilds vectors + seeds knowledge.
     _ = settings()
-    seed_sample_knowledge()
+    ensure_vector_index()
     yield
 
 

@@ -44,7 +44,7 @@ Ver diagrama completo en [`ARCHITECTURE.md`](../ARCHITECTURE.md). Resumen:
 |---|---|---|
 | Orquestación | FastAPI use-cases + ports/adapters | `backend/app/agent/`, `ports.py` |
 | Voz | Web Speech API en el browser (STT + TTS) | `frontend/src/speech.ts` |
-| RAG | Store local hybrid (hash-cosine + BM25 → RRF), upload/delete, PDF | `backend/app/rag/store.py` |
+| RAG | Store local hybrid (MiniLM 384-d cosine + BM25 → RRF), upload/delete, PDF | `backend/app/rag/store.py`, `embeddings.py` |
 | Escalate | Prompt + **guardrails post-LLM** (autoritativos) | `prompts.py` + `safety.py` |
 | Persistencia de llamadas | JSON en `DATA_DIR` | `backend/app/calls/` |
 
@@ -62,7 +62,10 @@ MODEL_ID=llama-3.3-70b-versatile
 GROQ_API_KEY=gsk_...
 CORS_ORIGINS=http://localhost:5173
 DATA_DIR=./data
+EMBED_PROVIDER=fastembed
 ```
+
+Embeddings: `paraphrase-multilingual-MiniLM-L12-v2` vía **fastembed** (ONNX, sin torch). `make setup` ejecuta `make warm-embed` para pre-descargar el modelo (~220 MB). Rollback: `EMBED_PROVIDER=hash`.
 
 Puertos: API **8001**, UI **5173**. Verificación: `make smoke-groq` y `make verify`.
 
@@ -192,7 +195,7 @@ El historial de commits en GitHub refleja el trabajo incremental (PRs de adapter
 
 | Riesgo | Mitigación actual | Si hubiera 2 semanas más |
 |---|---|---|
-| Alucinación clínica | Prompt “solo RAG” + no inventar dosis | Mejor retrieval (BGE-M3 + Chroma) |
+| Alucinación clínica | Prompt “solo RAG” + hybrid MiniLM+BM25 | Chroma / BGE-M3 si el corpus crece mucho |
 | Falso negativo escalate | Guardrails post-LLM + eval rojo | Más casos capa2 ruidosa; umbrales por procedimiento |
 | Rate limit Groq free | Reintentos en eval; demo corta | Cola / Gemini fallback automático |
 | Voz solo browser | Documentado; Chrome/Edge | Piper/Kokoro o Whisper server-side |

@@ -120,7 +120,7 @@ Mira a cámara. Puedes tener este texto en un segundo monitor, pero **no leas co
 >
 > Alternativas que evalué: (1) solo prompt —más simple, pero arriesgado en falso negativo; (2) solo reglas —rígido y pobre en conversación; (3) Gemini Flash como default —mejor contexto largo, pero prioricé **latencia de voz** con Groq Llama 3.3 70B. Anthropic ni se consideró: descalifica.
 >
-> Riesgos: rate limits del free tier; embeddings locales simples (no BGE-M3); voz solo browser. Con dos semanas más: mejor retrieval (embeddings reales + Chroma), rollup de tokens en logs, y TTS/STT más robusto (Whisper/Piper) sin perder el cold start de 15 minutos.
+> Riesgos: rate limits del free tier; embeddings locales MiniLM vía fastembed (no BGE-M3/Chroma); voz solo browser. Con dos semanas más: Chroma + modelo más grande, rollup de tokens en logs, y TTS/STT más robusto (Whisper/Piper) sin perder el cold start de 15 minutos.
 
 *(Alternativa si prefieres hablar del modelo: misma estructura — por qué Groq Llama vs Gemini vs local.)*
 

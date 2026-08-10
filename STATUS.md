@@ -119,7 +119,7 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | Area | Gap |
 |---|---|
 | LLM in demo | **Groq OK** (`make smoke-groq` pasó con `llama-3.3-70b-versatile`) |
-| RAG quality | **17 cholecystitis PDFs ingested**; **hybrid BM25 + hash-cosine (RRF)**; not BGE-M3/Chroma |
+| RAG quality | **17 cholecystitis PDFs ingested**; **hybrid BM25 + MiniLM 384-d (fastembed) → RRF**; not BGE-M3/Chroma |
 | Dataset Excel | **12 demo cases** in UI; **`make eval-escalate`** scores escalate vs verde/amarillo/rojo |
 | Voice | Browser only; Kokoro/Piper / Groq Whisper not wired |
 | Metrics | Tokens from Groq usage; E2E STT→TTS in FE; P50/P95 on call summary — **fill README E2E after a voice run** |

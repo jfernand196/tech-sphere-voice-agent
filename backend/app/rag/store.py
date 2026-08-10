@@ -1,8 +1,7 @@
-"""Local vector store: hash embeddings + BM25 hybrid search (no heavy deps)."""
+"""Local vector store: semantic (or hash) embeddings + BM25 hybrid search."""
 
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 import re
@@ -13,11 +12,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
+from app.rag.embeddings import Embedder, HashEmbedder, tokenize
+
 # Okapi BM25 defaults
 _BM25_K1 = 1.5
 _BM25_B = 0.75
 # Reciprocal Rank Fusion constant
 _RRF_K = 60
+# Cosine floor: hash scores are sparse; dense MiniLM scores are typically higher.
+_VEC_FLOOR_HASH = 0.05
+_VEC_FLOOR_DENSE = 0.12
 
 
 def _utcnow() -> datetime:
@@ -43,28 +47,9 @@ class DocumentRecord:
     metadata: dict
 
 
-def _tokenize(text: str) -> List[str]:
-    return re.findall(r"[a-záéíóúñü0-9]+", text.lower())
-
-
-def embed_text(text: str, dims: int = 256) -> List[float]:
-    """Deterministic bag-of-tokens embedding (no external model required)."""
-    vec = [0.0] * dims
-    tokens = _tokenize(text)
-    if not tokens:
-        return vec
-    for token in tokens:
-        digest = hashlib.sha256(token.encode("utf-8")).digest()
-        idx = int.from_bytes(digest[:4], "little") % dims
-        sign = 1.0 if digest[4] % 2 == 0 else -1.0
-        vec[idx] += sign
-    norm = math.sqrt(sum(v * v for v in vec))
-    if norm > 0:
-        vec = [v / norm for v in vec]
-    return vec
-
-
 def cosine(a: List[float], b: List[float]) -> float:
+    if not a or not b or len(a) != len(b):
+        return 0.0
     dot = sum(x * y for x, y in zip(a, b))
     na = math.sqrt(sum(x * x for x in a))
     nb = math.sqrt(sum(y * y for y in b))
@@ -151,7 +136,6 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 80) -> List[str]
                 if len(sentence) <= chunk_size:
                     buf = sentence
                 else:
-                    # Hard wrap very long sentences as a last resort.
                     start = 0
                     while start < len(sentence):
                         units.append(sentence[start : start + chunk_size])
@@ -163,12 +147,37 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 80) -> List[str]
 
 
 class LocalVectorStore:
-    def __init__(self, documents_path: Path, vector_dir: Path) -> None:
+    def __init__(
+        self,
+        documents_path: Path,
+        vector_dir: Path,
+        embedder: Optional[Embedder] = None,
+    ) -> None:
         self.documents_path = documents_path
+        self.vector_dir = vector_dir
         self.chunks_path = vector_dir / "chunks.json"
+        self.meta_path = vector_dir / "embed_meta.json"
+        self.embedder: Embedder = embedder or HashEmbedder()
         self._documents: Dict[str, DocumentRecord] = {}
         self._chunks: List[ChunkRecord] = []
+        self.needs_reembed = False
         self._load()
+
+    def _vec_floor(self) -> float:
+        return _VEC_FLOOR_HASH if self.embedder.name == "hash" else _VEC_FLOOR_DENSE
+
+    def _write_meta(self) -> None:
+        self.vector_dir.mkdir(parents=True, exist_ok=True)
+        self.meta_path.write_text(
+            json.dumps(
+                {
+                    "provider": self.embedder.name,
+                    "dim": self.embedder.dim,
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
 
     def _load(self) -> None:
         if self.documents_path.exists():
@@ -177,6 +186,34 @@ class LocalVectorStore:
         if self.chunks_path.exists():
             raw_chunks = json.loads(self.chunks_path.read_text(encoding="utf-8"))
             self._chunks = [ChunkRecord(**c) for c in raw_chunks]
+
+        stored_dim: Optional[int] = None
+        if self.meta_path.exists():
+            try:
+                meta = json.loads(self.meta_path.read_text(encoding="utf-8"))
+                stored_dim = int(meta.get("dim") or 0) or None
+            except (json.JSONDecodeError, TypeError, ValueError):
+                stored_dim = None
+        if stored_dim is None and self._chunks:
+            stored_dim = len(self._chunks[0].embedding)
+
+        if self._chunks and stored_dim is not None and stored_dim != self.embedder.dim:
+            # Keep document catalog; wipe vectors so lifespan can re-ingest from paths.
+            self._chunks = []
+            for doc_id, doc in list(self._documents.items()):
+                self._documents[doc_id] = DocumentRecord(
+                    doc_id=doc.doc_id,
+                    title=doc.title,
+                    filename=doc.filename,
+                    chunk_count=0,
+                    created_at=doc.created_at,
+                    metadata=doc.metadata,
+                )
+            self.needs_reembed = True
+            self._persist()
+            self._write_meta()
+        elif not self.meta_path.exists():
+            self._write_meta()
 
     def _persist(self) -> None:
         self.documents_path.parent.mkdir(parents=True, exist_ok=True)
@@ -189,6 +226,7 @@ class LocalVectorStore:
             json.dumps([asdict(c) for c in self._chunks], ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        self._write_meta()
 
     def list_documents(self) -> List[DocumentRecord]:
         return sorted(self._documents.values(), key=lambda d: d.created_at, reverse=True)
@@ -206,15 +244,17 @@ class LocalVectorStore:
     ) -> DocumentRecord:
         doc_id = str(uuid.uuid4())
         parts = chunk_text(text)
+        vectors = self.embedder.embed_documents(parts) if parts else []
         new_chunks: List[ChunkRecord] = []
         for idx, part in enumerate(parts):
+            emb = vectors[idx] if idx < len(vectors) else self.embedder.embed_query(part)
             new_chunks.append(
                 ChunkRecord(
                     chunk_id=f"{doc_id}:{idx}",
                     doc_id=doc_id,
                     title=title,
                     text=part,
-                    embedding=embed_text(part),
+                    embedding=emb,
                 )
             )
         record = DocumentRecord(
@@ -239,18 +279,17 @@ class LocalVectorStore:
         return True
 
     def search(self, query: str, top_k: int = 4) -> List[Tuple[ChunkRecord, float]]:
-        """Hybrid retrieve: hash-cosine ranks + BM25 ranks, fused with RRF."""
+        """Hybrid retrieve: embedding-cosine ranks + BM25 ranks, fused with RRF."""
         if not self._chunks:
             return []
 
-        q_tokens = _tokenize(query)
-        q_vec = embed_text(query)
+        q_tokens = tokenize(query)
+        q_vec = self.embedder.embed_query(query)
         vec_scores = [cosine(q_vec, chunk.embedding) for chunk in self._chunks]
 
-        docs_tokens = [_tokenize(chunk.text) for chunk in self._chunks]
+        docs_tokens = [tokenize(chunk.text) for chunk in self._chunks]
         lexical_scores = bm25_scores(q_tokens, docs_tokens)
 
-        # Rankings: best score first (stable by index on ties).
         n = len(self._chunks)
         vec_ranked = sorted(range(n), key=lambda i: (-vec_scores[i], i))
         bm25_ranked = sorted(range(n), key=lambda i: (-lexical_scores[i], i))
@@ -260,11 +299,11 @@ class LocalVectorStore:
         else:
             fused = rrf_fuse(vec_ranked)
 
-        # Keep chunks that have some signal in either channel.
+        floor = self._vec_floor()
         candidates = [
             i
             for i in range(n)
-            if vec_scores[i] > 0.05 or lexical_scores[i] > 0.0
+            if vec_scores[i] > floor or lexical_scores[i] > 0.0
         ]
         if not candidates:
             return []
@@ -272,7 +311,5 @@ class LocalVectorStore:
         candidates.sort(key=lambda i: (-fused.get(i, 0.0), i))
         out: List[Tuple[ChunkRecord, float]] = []
         for i in candidates[:top_k]:
-            # Expose a readable blend: RRF is small (~0.03); scale for UI.
-            score = round(fused.get(i, 0.0) * 100.0, 4)
-            out.append((self._chunks[i], score))
+            out.append((self._chunks[i], fused.get(i, 0.0) * 100.0))
         return out

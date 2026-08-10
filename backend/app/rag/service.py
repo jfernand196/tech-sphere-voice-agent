@@ -4,18 +4,29 @@ from pathlib import Path
 from typing import Optional
 
 from app.config import Settings
+from app.rag.embeddings import Embedder, get_embedder
 from app.rag.extract import extract_text
 from app.rag.store import DocumentRecord, LocalVectorStore
 from app.schemas import DocumentInfo, KnowledgeChunk
 
 
 class KnowledgeService:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        embedder: Optional[Embedder] = None,
+    ) -> None:
         self.settings = settings
+        self.embedder = embedder or get_embedder(settings.embed_provider)
         self.store = LocalVectorStore(
             documents_path=settings.documents_path,
             vector_dir=settings.vector_store_dir,
+            embedder=self.embedder,
         )
+
+    @property
+    def needs_reembed(self) -> bool:
+        return self.store.needs_reembed
 
     def list_documents(self) -> list[DocumentInfo]:
         return [self._to_info(d) for d in self.store.list_documents()]
@@ -67,6 +78,43 @@ class KnowledgeService:
             if p.exists():
                 p.unlink()
         return self.store.delete_document(doc_id)
+
+    def rebuild_stale_embeddings(self) -> int:
+        """Re-ingest docs from metadata['path'] after embedder dim/provider change."""
+        if not self.store.needs_reembed:
+            return 0
+
+        docs = list(self.store.list_documents())
+        rebuilt = 0
+        for doc in docs:
+            path_raw = (doc.metadata or {}).get("path")
+            path = Path(path_raw) if path_raw else None
+            if path is None or not path.exists():
+                # Drop catalog-only rows (e.g. old seed without a file).
+                self.store.delete_document(doc.doc_id)
+                continue
+            try:
+                content = path.read_bytes()
+                text = extract_text(path.name, content)
+            except Exception:
+                self.store.delete_document(doc.doc_id)
+                continue
+            if len(text.strip()) < 20:
+                self.store.delete_document(doc.doc_id)
+                continue
+            meta = dict(doc.metadata or {})
+            meta["path"] = str(path)
+            self.store.delete_document(doc.doc_id)
+            self.ingest_text(
+                title=doc.title,
+                filename=doc.filename,
+                text=text,
+                metadata=meta,
+            )
+            rebuilt += 1
+
+        self.store.needs_reembed = False
+        return rebuilt
 
     def retrieve(self, query: str, top_k: int = 4) -> list[KnowledgeChunk]:
         hits = self.store.search(query, top_k=top_k)

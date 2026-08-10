@@ -1,9 +1,14 @@
-.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq verify
+.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq verify warm-embed
 
 setup:
 	cd backend && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
 	cd frontend && npm install
 	cp -n .env.example backend/.env || true
+	$(MAKE) warm-embed
+
+# Pre-download ONNX MiniLM (~220 MB) so cold-start clock doesn't pay the first-embed download.
+warm-embed: ## Pre-download embedding model
+	cd backend && . .venv/bin/activate && PYTHONPATH=. python -c "from app.rag.embeddings import FastembedEmbedder; FastembedEmbedder().warmup(); print('warm-embed OK')"
 
 backend:
 	cd backend && . .venv/bin/activate && PYTHONPATH=. uvicorn app.main:app --reload --host 127.0.0.1 --port 8001

@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     gemini_api_key: str = ""
 
+    # RAG embeddings: fastembed (MiniLM multilingual, default) | hash (offline / rollback)
+    embed_provider: str = "fastembed"
+
     cors_origins: str = "http://localhost:5173"
 
     data_dir: Path = _BACKEND_ROOT / "data"

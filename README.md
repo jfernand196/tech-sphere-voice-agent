@@ -41,7 +41,9 @@ Keep the key ready to paste. No paid plan required.
 git clone https://github.com/jfernand196/tech-sphere-voice-agent.git
 cd tech-sphere-voice-agent
 
-# 2) Install deps + create backend/.env from the example (~1–3 min)
+# 2) Install deps + create backend/.env from the example (~2–5 min)
+#    Also pre-downloads the ONNX embedding model (~220 MB) via `make warm-embed`
+#    so the first API boot does not pay that download on the clock.
 make setup
 
 # 3) Paste your Groq key into backend/.env
@@ -84,6 +86,7 @@ That is “solution up and accessible.” Demo exercises (voice, upload, escalat
 | `llm_ready=false` / `degraded` | Key wrong or provider not `groq`. Fix `.env`, restart `make backend`. |
 | Port 8001 or 5173 busy | Stop the other process, or set `BACKEND_PORT` / Vite port and keep UI proxy aligned. |
 | `python3` / `npm` not found | Install Python 3.9+ and Node 18+; re-run `make setup`. |
+| First RAG slow / model download | Run `make warm-embed` (also part of `make setup`). Offline rollback: `EMBED_PROVIDER=hash` in `backend/.env`. |
 | Mic / speech errors in the UI | Use Chrome/Edge; allow microphone; HTTPS not required on localhost. |
 | Groq HTTP 429 | Free-tier rate limit — wait ~30s and retry the turn. |
 
