@@ -25,13 +25,13 @@ flowchart LR
   Agent -->|chat completions| Groq
   API -->|upload / delete| Store
   Agent -->|TTS texto| UI
-  UI -->|Web Speech TTS| Paciente
+  UI -->|Kokoro WAV / Web Speech fallback| Paciente
 ```
 
 | Layer | Path |
 |---|---|
 | UI call + knowledge | `frontend/src/components/` |
-| Voice STT/TTS | `frontend/src/speech.ts`, `hooks/useAgentVoice.ts`, `hooks/useCallSession.ts` |
+| Voice STT/TTS | `frontend/src/speech.ts`, `kokoroTts.ts`, `hooks/useAgentVoice.ts`; backend `app/voice/` |
 | HTTP adapters | `backend/app/api/` |
 | Use-cases | `backend/app/agent/service.py`, `calls/service.py`, `rag/service.py` |
 | Ports | `backend/app/ports.py` (`LLMClient`, `KnowledgePort`) |
@@ -162,6 +162,8 @@ From `backend/.env` (see `.env.example`):
 | `MODEL_ID` | e.g. `llama-3.3-70b-versatile` |
 | `GROQ_API_KEY` / `GEMINI_API_KEY` | Cloud credentials |
 | `EMBED_PROVIDER` | `fastembed` (default) · `hash` (offline rollback) |
+| `TTS_PROVIDER` | `auto` (Kokoro if models present) · `kokoro` · `browser` |
+| `KOKORO_VOICE` | e.g. `ef_dora` (Spanish) |
 | `CORS_ORIGINS` | UI origin |
 | `DATA_DIR` | Uploads + vector store + calls JSON |
 
@@ -171,5 +173,5 @@ From `backend/.env` (see `.env.example`):
 
 - Real telephony / hospital HIS
 - Enterprise auth / roles
-- Server-side STT/TTS (browser Web Speech only today)
+- Server-side STT (browser Web Speech; Kokoro covers TTS only)
 - External vector DB (local MiniLM via fastembed; Chroma/BGE-M3 left as future work)

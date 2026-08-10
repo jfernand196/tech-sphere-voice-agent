@@ -188,16 +188,25 @@ class LocalVectorStore:
             self._chunks = [ChunkRecord(**c) for c in raw_chunks]
 
         stored_dim: Optional[int] = None
+        stored_provider: Optional[str] = None
         if self.meta_path.exists():
             try:
                 meta = json.loads(self.meta_path.read_text(encoding="utf-8"))
                 stored_dim = int(meta.get("dim") or 0) or None
+                stored_provider = meta.get("provider") or None
             except (json.JSONDecodeError, TypeError, ValueError):
                 stored_dim = None
+                stored_provider = None
         if stored_dim is None and self._chunks:
             stored_dim = len(self._chunks[0].embedding)
 
-        if self._chunks and stored_dim is not None and stored_dim != self.embedder.dim:
+        dim_mismatch = (
+            stored_dim is not None and stored_dim != self.embedder.dim
+        )
+        provider_mismatch = (
+            stored_provider is not None and stored_provider != self.embedder.name
+        )
+        if self._chunks and (dim_mismatch or provider_mismatch):
             # Keep document catalog; wipe vectors so lifespan can re-ingest from paths.
             self._chunks = []
             for doc_id, doc in list(self._documents.items()):

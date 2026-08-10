@@ -26,10 +26,10 @@ Install once on the machine (not part of the app install itself, but required):
 | macOS or Linux | — | — |
 | Git | any recent | `git --version` |
 | Make | any | `make --version` |
-| Python | **3.9+** | `python3 --version` |
+| Python | **3.12 recommended** (3.10+ for Kokoro TTS; 3.9 works only with browser TTS) | `python3.12 --version` |
 | Node.js | **18+** (LTS ok) | `node -v` |
 | npm | comes with Node | `npm -v` |
-| Chrome or Edge | recent | needed for Web Speech (mic + TTS) |
+| Chrome or Edge | recent | needed for Web Speech STT (mic); TTS uses Kokoro when warmed |
 
 **API key (free):** create a Groq key at https://console.groq.com/keys  
 Keep the key ready to paste. No paid plan required.
@@ -41,9 +41,11 @@ Keep the key ready to paste. No paid plan required.
 git clone https://github.com/jfernand196/tech-sphere-voice-agent.git
 cd tech-sphere-voice-agent
 
-# 2) Install deps + create backend/.env from the example (~2–5 min)
-#    Also pre-downloads the ONNX embedding model (~220 MB) via `make warm-embed`
-#    so the first API boot does not pay that download on the clock.
+# 2) Install deps + create backend/.env from the example (~3–8 min)
+#    Prefers python3.12. Also pre-downloads:
+#      - MiniLM embeddings (~220 MB) via `make warm-embed`
+#      - Kokoro TTS int8 (~115 MB) via `make warm-kokoro`
+#    so the first API boot does not pay those downloads on the clock.
 make setup
 
 # 3) Paste your Groq key into backend/.env
@@ -87,7 +89,9 @@ That is “solution up and accessible.” Demo exercises (voice, upload, escalat
 | Port 8001 or 5173 busy | Stop the other process, or set `BACKEND_PORT` / Vite port and keep UI proxy aligned. |
 | `python3` / `npm` not found | Install Python 3.9+ and Node 18+; re-run `make setup`. |
 | First RAG slow / model download | Run `make warm-embed` (also part of `make setup`). Offline rollback: `EMBED_PROVIDER=hash` in `backend/.env`. |
+| Robot / OS-dependent TTS | Default is Kokoro (`TTS_PROVIDER=auto`) after `make warm-kokoro`. Rollback: `TTS_PROVIDER=browser`. |
 | Mic / speech errors in the UI | Use Chrome/Edge; allow microphone; HTTPS not required on localhost. |
+| `kokoro-onnx` install fails on 3.9 | Recreate venv with Python 3.12: `rm -rf backend/.venv && make setup`. |
 | Groq HTTP 429 | Free-tier rate limit — wait ~30s and retry the turn. |
 
 Without a key, the backend **does not** silently fall back to `mock` when `LLM_PROVIDER=groq`.
@@ -181,7 +185,7 @@ Do not invent E2E numbers — only report what the summary card shows after real
 | RAG | Upload `.txt/.md/.pdf`, list, delete; local retrieval + citations |
 | Agent | Orchestration + safety + JSON contract |
 | Calls | History + hang-up summary |
-| Voice | Browser Web Speech (STT/TTS) |
+| Voice | Browser Web Speech STT + **Kokoro ONNX TTS** (browser TTS fallback) |
 | UI | Knowledge console + call interface |
 
 Adapters: `backend/app/agent/llm_groq.py`, `llm_gemini.py`. Factory: `factory.py`.

@@ -7,5 +7,7 @@ httpx==0.28.1
 pytest==8.3.5
 pypdf==5.4.0
 openpyxl==3.1.5
-fastembed==0.3.6
+fastembed==0.7.4
+kokoro-onnx==0.4.9
+soundfile==0.13.1
 

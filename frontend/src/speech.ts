@@ -134,8 +134,8 @@ function pickBestSpanishVoice(
   return ranked.find((v) => v.lang.toLowerCase().startsWith("es")) ?? ranked[0] ?? null;
 }
 
-/** Soften text for TTS: less “robot reading a protocol”. */
-function prepareSpokenText(text: string): string {
+/** Soften text for TTS (Kokoro + browser): less “robot reading a protocol”. */
+export function prepareSpokenText(text: string): string {
   return text
     .replace(/\b(\d+)\.(\d+)\s*°?\s*C\b/gi, "$1 coma $2 grados")
     .replace(/\b(\d+)\s*°?\s*C\b/gi, "$1 grados")
@@ -147,8 +147,7 @@ function prepareSpokenText(text: string): string {
     .trim();
 }
 
-function splitForSpeech(text: string): string[] {
-  const prepared = prepareSpokenText(text);
+function splitForSpeech(prepared: string): string[] {
   const parts = prepared
     .split(/(?<=[.!?])\s+/)
     .map((p) => p.trim())
@@ -194,12 +193,13 @@ type SpeakOptions = {
 
 export function stopSpeaking(): void {
   speakToken += 1;
+  void import("./kokoroTts").then((m) => m.stopKokoroAudio());
   if (canUseSpeechSynthesis()) {
     window.speechSynthesis.cancel();
   }
 }
 
-export async function speak(text: string, options: SpeakOptions = {}): Promise<void> {
+async function speakBrowser(text: string, options: SpeakOptions = {}): Promise<void> {
   if (!canUseSpeechSynthesis() || !text.trim()) return;
 
   const lang = options.lang ?? "es-CO";
@@ -230,6 +230,30 @@ export async function speak(text: string, options: SpeakOptions = {}): Promise<v
       }
     });
   return speakChain;
+}
+
+export async function speak(text: string, options: SpeakOptions = {}): Promise<void> {
+  const prepared = prepareSpokenText(text);
+  if (!prepared) return;
+
+  const { getCachedTtsMode, speakWithKokoro, loadTtsCapabilities } = await import(
+    "./kokoroTts"
+  );
+  await loadTtsCapabilities();
+
+  if (getCachedTtsMode() === "kokoro") {
+    try {
+      await speakWithKokoro(prepared, {
+        voiceName: options.voiceName,
+        onStart: options.onStart,
+      });
+      return;
+    } catch (err) {
+      console.warn("Kokoro TTS failed; falling back to browser speechSynthesis", err);
+    }
+  }
+
+  return speakBrowser(prepared, options);
 }
 
 export type ListenResult = {

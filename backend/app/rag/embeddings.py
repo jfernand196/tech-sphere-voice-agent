@@ -68,7 +68,8 @@ class FastembedEmbedder:
     """ONNX multilingual MiniLM via fastembed (CPU, no torch)."""
 
     def __init__(self, model_name: str = DEFAULT_FASTEMBED_MODEL) -> None:
-        self.name = f"fastembed:{model_name}"
+        # Include pooling tag so embed_meta invalidates older CLS vectors (fastembed≥0.6).
+        self.name = f"fastembed:{model_name}:mean"
         self.dim = 384
         self._model_name = model_name
         self._model = None

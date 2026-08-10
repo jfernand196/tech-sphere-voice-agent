@@ -31,7 +31,7 @@ def get_agent_service() -> AgentService:
 
 @lru_cache
 def get_voice_service() -> VoiceService:
-    return VoiceService()
+    return VoiceService(get_settings())
 
 
 def settings() -> Settings:
