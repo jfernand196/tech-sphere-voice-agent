@@ -1,5 +1,7 @@
 /** Server-side Kokoro TTS (WAV via /api/voice/tts) with browser fallback seam. */
 
+export type TtsEngine = "kokoro" | "browser";
+
 export type KokoroVoiceOption = {
   name: string;
   lang: string;
@@ -14,6 +16,8 @@ export type TtsCapabilities = {
     voices?: Array<{ id: string; label: string }>;
   };
 };
+
+const TTS_ENGINE_KEY = "tsva.ttsEngine";
 
 let cachedCaps: TtsCapabilities | null = null;
 let currentAudio: HTMLAudioElement | null = null;
@@ -40,8 +44,9 @@ export async function loadTtsCapabilities(
   return cachedCaps;
 }
 
-export function getCachedTtsMode(): "kokoro" | "browser" {
-  return cachedCaps?.mode === "kokoro" ? "kokoro" : "browser";
+/** Server can run Kokoro (models present + provider allows it). */
+export function isKokoroAvailable(): boolean {
+  return cachedCaps?.mode === "kokoro";
 }
 
 export function listKokoroVoices(): KokoroVoiceOption[] {
@@ -55,6 +60,23 @@ export function listKokoroVoices(): KokoroVoiceOption[] {
 
 export function defaultKokoroVoice(): string {
   return cachedCaps?.kokoro?.default_voice || listKokoroVoices()[0]?.name || "ef_dora";
+}
+
+/**
+ * User preference for TTS engine.
+ * Default is browser (lower latency) when Web Speech exists; Kokoro is opt-in quality.
+ */
+export function getPreferredTtsEngine(): TtsEngine {
+  const saved = localStorage.getItem(TTS_ENGINE_KEY);
+  if (saved === "kokoro" || saved === "browser") {
+    if (saved === "kokoro" && !isKokoroAvailable()) return "browser";
+    return saved;
+  }
+  return "browser";
+}
+
+export function setPreferredTtsEngine(engine: TtsEngine): void {
+  localStorage.setItem(TTS_ENGINE_KEY, engine);
 }
 
 export function stopKokoroAudio(): void {

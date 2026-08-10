@@ -161,20 +161,22 @@ Instrumentado en código. Tras una llamada de voz, el **resumen al colgar** mues
 3. End call → read P50/P95 e2e + token totals on the summary card (also in JSON)  
 4. Paste into the table below
 
-### Observed sample (update after your voice run)
+### Observed sample (voice call, 10 mic turns)
+
+Groq `llama-3.3-70b-versatile` · Web Speech STT + Web Speech TTS · caso día 7 crítico · resumen al colgar.
 
 | Metric | Value | Notes |
 |---|---|---|
-| E2E voice latency P50 | *run voice sample* | Requires mic turns; not from `eval-escalate` |
-| E2E voice latency P95 | *run voice sample* | Same |
-| Agent-turn latency P50 | **~1.5 s** | Groq, 10 kit turns (`make eval-escalate`) |
-| Agent-turn latency P95 | **~2.2 s** | Same sample |
-| Model invocations / turn | **1** | Fixed by design |
-| RAG queries / turn | **1** | Fixed by design |
-| Tokens in / out | *per-turn in UI; totals on hang-up* | From provider usage |
-| Est. cost / call | *on hang-up summary* | Prod list-price estimate; challenge free tier ≈ $0 |
+| E2E voice latency P50 | **1136 ms** | STT final → TTS audio start |
+| E2E voice latency P95 | **1427 ms** | Same call |
+| Agent-turn latency P50 | **1044 ms** | Backend RAG + LLM + safety (`api`) |
+| Agent-turn latency P95 | **1337 ms** | Same call |
+| Model invocations / turn | **1** | 10 inv / 10 turns |
+| RAG queries / turn | **1** | 10 RAG / 10 turns |
+| Tokens in / out | **8422 / 2208** | Call totals (Groq usage) |
+| Est. cost / call | **$0.0067 USD** | Prod list-price estimate; free tier ≈ $0 at runtime |
 
-Do not invent E2E numbers — only report what the summary card shows after real voice turns.
+Offline kit check (`make eval-escalate`) previously showed agent-turn ~1.5 s / ~2.2 s P50/P95 on 10 text cases — use the voice hang-up card for the official E2E numbers above.
 
 ---
 
