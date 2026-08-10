@@ -22,6 +22,7 @@ class KnowledgeService:
             documents_path=settings.documents_path,
             vector_dir=settings.vector_store_dir,
             embedder=self.embedder,
+            sources_dir=settings.sources_dir,
         )
 
     @property
@@ -82,41 +83,88 @@ class KnowledgeService:
                 p.unlink()
         return self.store.delete_document(doc_id)
 
+    def _read_source_file(self, path: Path) -> Optional[str]:
+        if not path.is_file():
+            return None
+        try:
+            if path.suffix.lower() in {".txt", ".md", ""}:
+                text = path.read_text(encoding="utf-8")
+            else:
+                text = extract_text(path.name, path.read_bytes())
+        except Exception:
+            return None
+        return text if len(text.strip()) >= 20 else None
+
+    def resolve_source_text(self, doc: DocumentRecord) -> Optional[str]:
+        """Prefer upload path, then snapshot, then in-memory chunks."""
+        meta = doc.metadata or {}
+        for key in ("path", "source_path"):
+            raw = meta.get(key)
+            if not raw:
+                continue
+            text = self._read_source_file(Path(raw))
+            if text:
+                return text
+        # Snapshot by doc_id even if metadata lost the pointer.
+        text = self._read_source_file(self.store.source_file(doc.doc_id))
+        if text:
+            return text
+        parts = [c.text for c in self.store.chunks_for(doc.doc_id)]
+        if parts:
+            joined = "\n\n".join(parts)
+            return joined if len(joined.strip()) >= 20 else None
+        return None
+
+    def _doc_needs_rebuild(self, doc: DocumentRecord) -> bool:
+        if doc.chunk_count == 0:
+            return True
+        for chunk in self.store.chunks_for(doc.doc_id):
+            return len(chunk.embedding) != self.embedder.dim
+        return True
+
     def rebuild_stale_embeddings(self) -> int:
-        """Re-ingest docs from metadata['path'] after embedder dim/provider change."""
-        if not self.store.needs_reembed:
+        """Re-embed docs from path/snapshot; resume-safe across restarts."""
+        pending = [d for d in self.store.list_documents() if self._doc_needs_rebuild(d)]
+        if not self.store.needs_reembed and not pending:
             return 0
 
-        docs = list(self.store.list_documents())
+        # Safety net if wipe left chunks that still need archiving.
+        if self.store._chunks:
+            self.store.archive_sources_from_chunks()
+            self.store._persist()
+
         rebuilt = 0
-        for doc in docs:
-            path_raw = (doc.metadata or {}).get("path")
-            path = Path(path_raw) if path_raw else None
-            if path is None or not path.exists():
-                # Drop catalog-only rows (e.g. old seed without a file).
-                self.store.delete_document(doc.doc_id)
+        for doc in list(self.store.list_documents()):
+            if not self._doc_needs_rebuild(doc):
                 continue
-            try:
-                content = path.read_bytes()
-                text = extract_text(path.name, content)
-            except Exception:
-                self.store.delete_document(doc.doc_id)
-                continue
-            if len(text.strip()) < 20:
-                self.store.delete_document(doc.doc_id)
+            text = self.resolve_source_text(doc)
+            if not text:
+                print(
+                    f"[rag] skip rebuild (no source text): "
+                    f"{doc.doc_id} · {doc.title!r}"
+                )
                 continue
             meta = dict(doc.metadata or {})
-            meta["path"] = str(path)
+            title = doc.title
+            filename = doc.filename
             self.store.delete_document(doc.doc_id)
             self.ingest_text(
-                title=doc.title,
-                filename=doc.filename,
+                title=title,
+                filename=filename,
                 text=text,
                 metadata=meta,
             )
             rebuilt += 1
 
-        self.store.needs_reembed = False
+        still_pending = [
+            d for d in self.store.list_documents() if self._doc_needs_rebuild(d)
+        ]
+        self.store.needs_reembed = bool(still_pending)
+        if still_pending:
+            print(
+                f"[rag] rebuild incomplete: {len(still_pending)} doc(s) still pending "
+                "(will retry on next startup)"
+            )
         return rebuilt
 
     def retrieve(self, query: str, top_k: int = 4) -> list[KnowledgeChunk]:

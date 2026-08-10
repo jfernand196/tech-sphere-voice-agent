@@ -152,9 +152,11 @@ class LocalVectorStore:
         documents_path: Path,
         vector_dir: Path,
         embedder: Optional[Embedder] = None,
+        sources_dir: Optional[Path] = None,
     ) -> None:
         self.documents_path = documents_path
         self.vector_dir = vector_dir
+        self.sources_dir = sources_dir or (vector_dir / "sources")
         self.chunks_path = vector_dir / "chunks.json"
         self.meta_path = vector_dir / "embed_meta.json"
         self.embedder: Embedder = embedder or HashEmbedder()
@@ -208,8 +210,11 @@ class LocalVectorStore:
         )
         stale_embedder = dim_mismatch or provider_mismatch
 
+        pending_docs = any(d.chunk_count == 0 for d in self._documents.values())
+
         if self._chunks and stale_embedder:
-            # Keep document catalog; wipe vectors so lifespan can re-ingest from paths.
+            # Snapshot plaintext before wipe so path-less docs survive rebuild.
+            self.archive_sources_from_chunks()
             self._chunks = []
             for doc_id, doc in list(self._documents.items()):
                 self._documents[doc_id] = DocumentRecord(
@@ -225,11 +230,12 @@ class LocalVectorStore:
             self._write_meta()
         elif not self._chunks and self._documents:
             # Empty index with a leftover catalog (interrupted rebuild / wiped vectors).
-            # Previously this never set needs_reembed because the wipe branch required
-            # non-empty chunks — so restarts skipped rebuild forever.
             self.needs_reembed = True
             if stale_embedder or not self.meta_path.exists():
                 self._write_meta()
+        elif pending_docs:
+            # Mid-rebuild: some docs already re-embedded, others still at chunk_count=0.
+            self.needs_reembed = True
         elif not self.meta_path.exists():
             self._write_meta()
 
@@ -250,12 +256,13 @@ class LocalVectorStore:
         """Operational snapshot for /health (docs without vectors = broken RAG)."""
         docs = len(self._documents)
         chunks = len(self._chunks)
+        incomplete = any(d.chunk_count == 0 for d in self._documents.values())
         return {
             "rag_docs": docs,
             "rag_chunks": chunks,
             "rag_embedder": self.embedder.name,
             "rag_needs_reembed": self.needs_reembed,
-            "rag_ok": not (docs > 0 and chunks == 0),
+            "rag_ok": docs == 0 or (chunks > 0 and not incomplete and not self.needs_reembed),
         }
 
     def list_documents(self) -> List[DocumentRecord]:
@@ -263,6 +270,41 @@ class LocalVectorStore:
 
     def get_document(self, doc_id: str) -> Optional[DocumentRecord]:
         return self._documents.get(doc_id)
+
+    def chunks_for(self, doc_id: str) -> List[ChunkRecord]:
+        return [c for c in self._chunks if c.doc_id == doc_id]
+
+    def source_file(self, doc_id: str) -> Path:
+        return self.sources_dir / f"{doc_id}.txt"
+
+    def write_source_text(self, doc_id: str, text: str) -> Path:
+        self.sources_dir.mkdir(parents=True, exist_ok=True)
+        dest = self.source_file(doc_id)
+        dest.write_text(text, encoding="utf-8")
+        return dest
+
+    def archive_sources_from_chunks(self) -> None:
+        """Persist plaintext per doc from in-memory chunks (pre-wipe safety net)."""
+        by_doc: Dict[str, List[str]] = {}
+        for chunk in self._chunks:
+            by_doc.setdefault(chunk.doc_id, []).append(chunk.text)
+        for doc_id, parts in by_doc.items():
+            dest = self.source_file(doc_id)
+            if not dest.exists():
+                self.write_source_text(doc_id, "\n\n".join(parts))
+            doc = self._documents.get(doc_id)
+            if not doc:
+                continue
+            meta = dict(doc.metadata or {})
+            meta.setdefault("source_path", str(dest))
+            self._documents[doc_id] = DocumentRecord(
+                doc_id=doc.doc_id,
+                title=doc.title,
+                filename=doc.filename,
+                chunk_count=doc.chunk_count,
+                created_at=doc.created_at,
+                metadata=meta,
+            )
 
     def add_document(
         self,
@@ -287,13 +329,16 @@ class LocalVectorStore:
                     embedding=emb,
                 )
             )
+        meta = dict(metadata or {})
+        source_path = self.write_source_text(doc_id, text)
+        meta["source_path"] = str(source_path)
         record = DocumentRecord(
             doc_id=doc_id,
             title=title,
             filename=filename,
             chunk_count=len(new_chunks),
             created_at=_utcnow().isoformat(),
-            metadata=metadata or {},
+            metadata=meta,
         )
         self._documents[doc_id] = record
         self._chunks.extend(new_chunks)
@@ -303,8 +348,17 @@ class LocalVectorStore:
     def delete_document(self, doc_id: str) -> bool:
         if doc_id not in self._documents:
             return False
+        doc = self._documents[doc_id]
+        source = (doc.metadata or {}).get("source_path") or str(self.source_file(doc_id))
         del self._documents[doc_id]
         self._chunks = [c for c in self._chunks if c.doc_id != doc_id]
+        src_path = Path(source)
+        try:
+            if src_path.is_file():
+                src_path.resolve().relative_to(self.sources_dir.resolve())
+                src_path.unlink(missing_ok=True)
+        except ValueError:
+            pass
         self._persist()
         return True
 

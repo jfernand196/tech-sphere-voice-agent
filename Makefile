@@ -27,7 +27,10 @@ backend:
 	cd backend && . .venv/bin/activate && PYTHONPATH=. uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 
 frontend:
-	cd frontend && npm run dev
+	@# Single Vite on 5173 — kill leftovers so the UI does not hop to 5174/5175.
+	@pids=$$(lsof -nP -iTCP:5173 -sTCP:LISTEN -t 2>/dev/null); \
+	if [ -n "$$pids" ]; then echo "Stopping prior Vite on :5173 ($$pids)"; kill $$pids 2>/dev/null || true; sleep 0.4; fi
+	cd frontend && npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 
 # Cold-start check: API up + allowed LLM ready + RAG index non-empty (run after make backend).
 verify:
