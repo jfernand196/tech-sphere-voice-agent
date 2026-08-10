@@ -2,6 +2,7 @@ import { severityChip } from "../clinicalFormat";
 import { useLocale } from "../i18n/LocaleContext";
 import { displayDocTitle } from "../knowledgeFormat";
 import type { ChatItem } from "../types";
+import ChipRow from "./ChipRow";
 
 type Props = {
   message: ChatItem;
@@ -61,17 +62,14 @@ export default function ChatMessage({ message }: Props) {
         </div>
       ) : null}
       {message.sources && message.sources.length > 0 ? (
-        <ul className="chip-row">
-          {message.sources.map((s) => (
-            <li
-              key={s.chunk_id}
-              className="chip chip--source"
-              title={s.excerpt ? `${s.title}\n\n${s.excerpt}` : s.title}
-            >
-              {displayDocTitle(s.title, 42)}
-            </li>
-          ))}
-        </ul>
+        <ChipRow
+          items={message.sources.map((s) => ({
+            key: s.chunk_id,
+            label: displayDocTitle(s.title, 42),
+            title: s.excerpt ? `${s.title}\n\n${s.excerpt}` : s.title,
+            className: "chip chip--source",
+          }))}
+        />
       ) : null}
     </article>
   );

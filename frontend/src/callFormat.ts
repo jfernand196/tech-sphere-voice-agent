@@ -23,6 +23,23 @@ export function formatPairMs(p50?: number | null, p95?: number | null): string {
   return `${p50 ?? "—"}/${p95 ?? "—"} ms`;
 }
 
+/** Trim + case-insensitive dedupe; keeps first spelling for display. */
+export function dedupeTrimmedStrings(
+  items: string[],
+  locale = "es",
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of items) {
+    const trimmed = raw.trim();
+    const key = trimmed.toLocaleLowerCase(locale);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
+}
+
 /** True when there is something useful to show (not a wall of zeros). */
 export function hasMeaningfulCallMetrics(summary: CallSummary): boolean {
   return (

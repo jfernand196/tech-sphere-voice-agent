@@ -747,6 +747,15 @@ button:focus-visible,
   align-items: flex-start;
 }
 
+.summary-card__alert {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  max-width: min(22rem, 55%);
+  text-align: right;
+}
+
 .summary-card .eyebrow {
   margin: 0 0 0.25rem;
   color: var(--muted);
@@ -817,6 +826,31 @@ button:focus-visible,
   margin: 0;
   color: var(--alert);
   font-weight: 600;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.symptom-chips {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.symptom-chips__more {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.symptom-chips__more:hover {
+  color: var(--ink);
 }
 
 .summary-actions {
@@ -1071,6 +1105,12 @@ button:focus-visible,
   .doc-card {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .summary-card__alert {
+    align-items: flex-start;
+    max-width: none;
+    text-align: left;
   }
 
   .voice-bar {
