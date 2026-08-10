@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { formatCaseLabel, humanizeDemoHint } from "../demoFormat";
+import { demoHintBullets, formatCaseLabel } from "../demoFormat";
 import { useAgentVoice } from "../hooks/useAgentVoice";
 import { useCallSession } from "../hooks/useCallSession";
 import { useLocale } from "../i18n/LocaleContext";
@@ -20,7 +20,6 @@ export default function CallPanel() {
   });
 
   const phase = call.callId ? "live" : call.summary ? "ended" : "setup";
-  const selectedDemo = call.demoPatients.find((p) => p.id === call.selectedCaseId);
   const [editDetails, setEditDetails] = useState(false);
 
   function resetForNewCall() {
@@ -67,45 +66,42 @@ export default function CallPanel() {
       {phase === "setup" ? (
         <div className="setup-card enter">
           {call.demoPatients.length > 0 ? (
-            <label className="field-block">
-              {t("call.demoCase")}
-              <select
-                value={call.selectedCaseId}
-                onChange={(e) => {
-                  call.selectCase(e.target.value);
-                  setEditDetails(false);
-                }}
-              >
-                <option value="">{t("call.freePatient")}</option>
-                {call.demoPatients.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre} · {t("call.day", { n: p.dia_postop })} ·{" "}
-                    {formatCaseLabel(p.label, t)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="case-picker">
+              <label className="field-block case-picker__field">
+                {t("call.demoCase")}
+                <select
+                  value={call.selectedCaseId}
+                  onChange={(e) => {
+                    call.selectCase(e.target.value);
+                    setEditDetails(false);
+                  }}
+                >
+                  <option value="">{t("call.freePatient")}</option>
+                  {call.demoPatients.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre} · {t("call.day", { n: p.dia_postop })} ·{" "}
+                      {formatCaseLabel(p.label, t)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {call.selectedCaseId && !editDetails ? (
+                <button
+                  type="button"
+                  className="secondary case-picker__edit"
+                  onClick={() => setEditDetails(true)}
+                >
+                  {t("call.edit")}
+                </button>
+              ) : null}
+            </div>
           ) : null}
 
-          {call.selectedCaseId && !editDetails ? (
-            <div className="case-summary">
-              <div>
-                <strong>{call.patientName}</strong>
-                <span>
-                  {call.procedure} · {t("call.day", { n: call.diaPostop })}
-                  {selectedDemo ? ` · ${formatCaseLabel(selectedDemo.label, t)}` : ""}
-                </span>
-              </div>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setEditDetails(true)}
-              >
-                {t("call.edit")}
-              </button>
-            </div>
-          ) : (
+          {!call.selectedCaseId || editDetails ? (
             <>
+              {editDetails && call.selectedCaseId ? (
+                <p className="case-picker__note">{t("call.editDetails")}</p>
+              ) : null}
               <div className="form-grid form-grid--2">
                 <label>
                   {t("call.patient")}
@@ -143,21 +139,9 @@ export default function CallPanel() {
                 />
               </label>
             </>
-          )}
-
-          {call.demoHint ? (
-            <p className="demo-hint">
-              {t("call.demoHint")} {humanizeDemoHint(call.demoHint)}
-              {selectedDemo?.ciudad || selectedDemo?.eps ? (
-                <>
-                  <br />
-                  <span className="demo-hint__meta">
-                    {[selectedDemo.ciudad, selectedDemo.eps].filter(Boolean).join(" · ")}
-                  </span>
-                </>
-              ) : null}
-            </p>
           ) : null}
+
+          <DemoHintCard hint={call.demoHint} title={t("call.demoHint")} />
 
           {call.error ? <p className="error banner-error">{call.error}</p> : null}
 
@@ -240,5 +224,20 @@ export default function CallPanel() {
         <p className="error banner-error">{call.error}</p>
       ) : null}
     </section>
+  );
+}
+
+function DemoHintCard({ hint, title }: { hint: string; title: string }) {
+  const bullets = demoHintBullets(hint, 3);
+  if (!bullets.length) return null;
+  return (
+    <div className="demo-hint">
+      <p className="demo-hint__title">{title}</p>
+      <ul className="demo-hint__list">
+        {bullets.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
   );
 }

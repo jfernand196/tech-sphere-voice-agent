@@ -152,6 +152,13 @@ h1 {
   line-height: 1.45;
 }
 
+.byline {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
 h2,
 h3 {
   margin: 0;
@@ -430,7 +437,40 @@ button.danger {
   line-height: 1.4;
 }
 
-.demo-hint__meta {
+.demo-hint__title {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.demo-hint__list {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.demo-hint__list li {
+  margin: 0.15rem 0;
+}
+
+.case-picker {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.case-picker__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.case-picker__edit {
+  flex-shrink: 0;
+}
+
+.case-picker__note {
+  margin: 0;
+  font-size: 0.84rem;
   color: var(--muted);
   font-weight: 500;
 }
@@ -444,47 +484,66 @@ button.danger {
 }
 
 .voice-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--muted);
   padding: 0.45rem 0.15rem;
-  list-style-position: outside;
+  list-style: none;
+}
+
+.voice-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.voice-details summary::marker {
+  content: "";
+}
+
+.voice-details__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.voice-details__kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.voice-details__status {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.voice-details__chevron {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--muted);
+  transition: transform 0.15s ease;
 }
 
 .voice-details[open] summary {
   margin-bottom: 0.35rem;
-  color: var(--ink);
+}
+
+.voice-details[open] .voice-details__chevron {
+  transform: rotate(-180deg);
 }
 
 .voice-details .voice-bar {
   margin-bottom: 0.25rem;
   padding-top: 0.15rem;
   border-top: 1px solid var(--line);
-}
-
-.case-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
-  border-radius: 0.85rem;
-  border: 1px solid var(--line);
-  background: #fff;
-}
-
-.case-summary strong {
-  display: block;
-  font-size: 1rem;
-}
-
-.case-summary span {
-  display: block;
-  margin-top: 0.2rem;
-  color: var(--muted);
-  font-size: 0.88rem;
-  font-weight: 500;
 }
 
 .call-meta__patient {

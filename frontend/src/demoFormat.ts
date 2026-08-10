@@ -29,7 +29,7 @@ function humanizeSlug(value: string): string {
 }
 
 /** Turn dataset-style hints into short clinical Spanish for the actor. */
-export function humanizeDemoHint(hint: string): string {
+function humanizeDemoHint(hint: string): string {
   if (!hint.trim()) return hint;
 
   let text = hint;
@@ -43,4 +43,40 @@ export function humanizeDemoHint(hint: string): string {
   });
   text = text.replace(/_/g, " ");
   return text;
+}
+
+const PRIORITY_HINT = [
+  /^dolor\b/i,
+  /^temp/i,
+  /^herida\b/i,
+  /^movilidad\b/i,
+];
+
+function hintPriority(item: string): number {
+  const idx = PRIORITY_HINT.findIndex((re) => re.test(item));
+  return idx === -1 ? PRIORITY_HINT.length : idx;
+}
+
+/**
+ * Top clinical bullets for the jury actor card (pain / fever / wound…).
+ * Accepts `·` or `;` separators (kit export uses `;`).
+ */
+export function demoHintBullets(hint: string, max = 3): string[] {
+  const humanized = humanizeDemoHint(hint);
+  if (!humanized.trim()) return [];
+
+  const parts = humanized
+    .split(/\s*[·;|]\s*/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const clinical = parts.filter((p) => {
+    const lower = p.toLowerCase();
+    if (/eps\b/.test(lower)) return false;
+    if (/bogot|medell|cali|barranq|cartagen|ciudad/.test(lower)) return false;
+    return true;
+  });
+
+  const pool = clinical.length ? clinical : parts;
+  return [...pool].sort((a, b) => hintPriority(a) - hintPriority(b)).slice(0, max);
 }
