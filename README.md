@@ -1,5 +1,7 @@
 # Tech Sphere 2026 — Post-operative voice agent
 
+**Para el jurado (ES):** agente de voz de seguimiento post-operatorio (Colombia). Se levanta en **≤15 minutos** solo con esta sección *Cold start*. El modelo permitido por defecto es **Groq + Llama**. La demo de micrófono, subir/borrar conocimiento y escalate es **después** del reloj.
+
 Browser voice agent for Colombian post-op follow-up: clinical RAG, hot knowledge console, source citations, escalate-to-human, and structured call summary.
 
 | | |
@@ -9,30 +11,32 @@ Browser voice agent for Colombian post-op follow-up: clinical RAG, hot knowledge
 | UI | http://127.0.0.1:5173 |
 | API | http://127.0.0.1:8001 |
 
-> Challenge mirrors (Spanish): [`docs/challenge/`](./docs/challenge/). Handoff for builders: [`STATUS.md`](./STATUS.md).
+> Reto / rúbrica (español): [`docs/challenge/`](./docs/challenge/). Informe técnico: [`docs/informe-tecnico.md`](./docs/informe-tecnico.md).
 
 ---
 
-## Cold start (≤ 15 minutes)
+## Cold start (≤ 15 minutes) — jury path
 
-This is the **only** path the jury needs. Follow it top to bottom. Optional kit / eval steps are **below** and do **not** count toward lift.
+This is the **only** path needed to stop the G2 clock. Follow it top to bottom.
+
+- **Counts toward 15 min:** clone → `make setup` → key → smoke → backend + frontend → `make verify` → UI loads.
+- **Does not count:** voice demo, upload/delete knowledge, escalate, official kit, eval scripts, metrics refresh.
 
 ### Before the clock (2–3 min)
 
-Install once on the machine (not part of the app install itself, but required):
+Install once on the machine (tools only — not the app):
 
 | Tool | Suggested version | Check |
 |---|---|---|
 | macOS or Linux | — | — |
 | Git | any recent | `git --version` |
 | Make | any | `make --version` |
-| Python | **3.12 recommended** (3.10+ for Kokoro TTS; 3.9 works only with browser TTS) | `python3.12 --version` |
+| Python | **3.12 recommended** (3.10+ OK) | `python3.12 --version` |
 | Node.js | **18+** (LTS ok) | `node -v` |
 | npm | comes with Node | `npm -v` |
-| Chrome or Edge | recent | needed for Web Speech STT (mic); TTS uses Kokoro when warmed |
+| Chrome or Edge | recent | mic / Web Speech STT |
 
-**API key (free):** create a Groq key at https://console.groq.com/keys  
-Keep the key ready to paste. No paid plan required.
+**API key (free):** https://console.groq.com/keys — keep it ready to paste. No paid plan required.
 
 ### Timed path — copy/paste
 
@@ -41,16 +45,12 @@ Keep the key ready to paste. No paid plan required.
 git clone https://github.com/jfernand196/tech-sphere-voice-agent.git
 cd tech-sphere-voice-agent
 
-# 2) Install deps + create backend/.env from the example (~3–8 min)
-#    Prefers python3.12. Also pre-downloads:
-#      - MiniLM embeddings (~220 MB) via `make warm-embed`
-#      - Kokoro TTS int8 (~115 MB) via `make warm-kokoro`
-#      - Piper Spanish voices (~120 MB) via `make warm-piper`
-#    so the first API boot does not pay those downloads on the clock.
+# 2) Install deps + create backend/.env (~3–8 min on a normal network)
+#    Prefers python3.12. Pre-downloads embeddings (+ optional local TTS voices)
+#    so the first API boot does not pay those downloads later.
 make setup
 
 # 3) Paste your Groq key into backend/.env
-#    Open the file and set:
 #      LLM_PROVIDER=groq
 #      MODEL_ID=llama-3.3-70b-versatile
 #      GROQ_API_KEY=gsk_...your_key...
@@ -62,44 +62,51 @@ make smoke-groq
 # 5) Start API (terminal 1) — leave it running
 make backend
 #    Expect: Uvicorn on http://127.0.0.1:8001
+#    Expect log: [rag] index ready: docs=… chunks=…
 
 # 6) Start UI (terminal 2) — leave it running
 make frontend
 #    Expect: Vite on http://127.0.0.1:5173
 ```
 
-### Done criteria (stop the clock when all are true)
+### Done criteria — **stop the clock** when all are true
 
-In a **third** terminal (or browser):
+In a **third** terminal:
 
 ```bash
 make verify
 ```
 
-You should see `status=ok`, `llm_ready=true`, `llm_provider=groq`.
+You should see something like:
 
-Then open **http://127.0.0.1:5173** — the Call tab and Knowledge console load.  
-That is “solution up and accessible.” Demo exercises (voice, upload, escalate) are **after** lift; they are not part of the 15-minute clock.
+```text
+status=ok llm_ready=true rag_ok=true docs=… chunks=… llm=groq/llama-3.3-70b-versatile
+```
+
+Then open **http://127.0.0.1:5173** — Call tab and Knowledge console load.
+
+That is “solution up and accessible” for G2.  
+**Do not** spend clock time on mic tests, uploads, or escalate — those are the smoke demo **after** lift.
 
 ### If something fails
 
 | Symptom | Fix |
 |---|---|
 | `make smoke-groq` → missing key | Set `GROQ_API_KEY` in `backend/.env` (no quotes). Re-run smoke. |
-| `llm_ready=false` / `degraded` | Key wrong or provider not `groq`. Fix `.env`, restart `make backend`. |
-| Port 8001 or 5173 busy | Stop the other process, or set `BACKEND_PORT` / Vite port and keep UI proxy aligned. |
-| `python3` / `npm` not found | Install Python 3.9+ and Node 18+; re-run `make setup`. |
-| First RAG slow / model download | Run `make warm-embed` (also part of `make setup`). Offline rollback: `EMBED_PROVIDER=hash` in `backend/.env`. |
-| Robot / OS-dependent TTS | UI default is **Web Speech** (fast). Kokoro/Piper appear after `make warm-kokoro` / `make warm-piper` (`TTS_PROVIDER=auto`). |
-| Mic / speech errors in the UI | Use Chrome/Edge; allow microphone; HTTPS not required on localhost. |
-| `kokoro-onnx` install fails on 3.9 | Recreate venv with Python 3.12: `rm -rf backend/.venv && make setup`. |
-| Groq HTTP 429 | Free-tier rate limit — wait ~30s and retry the turn. |
+| `llm_ready=false` | Key wrong or `LLM_PROVIDER` not `groq`. Fix `.env`, restart `make backend`. |
+| `rag_ok=false` / `degraded` with docs but 0 chunks | Restart `make backend` and wait for `[rag] index ready` / re-embed log. |
+| Port 8001 or 5173 busy | Stop the other process (`make frontend` uses `:5173` strict). |
+| `python3` / `npm` not found | Install Python 3.12 + Node 18+; re-run `make setup`. |
+| First RAG / model download slow | Already covered by `make setup` (`warm-embed`). Offline rollback: `EMBED_PROVIDER=hash`. |
+| Mic / speech errors | Chrome/Edge; allow microphone; localhost is fine (no HTTPS). |
+| `kokoro-onnx` fails on Python 3.9 | Use 3.12: `rm -rf backend/.venv && make setup`. TTS default in UI is **Web Speech** anyway. |
+| Groq HTTP 429 | Free-tier limit — wait ~30s and retry. |
 
 Without a key, the backend **does not** silently fall back to `mock` when `LLM_PROVIDER=groq`.
 
 ---
 
-## Allowed language models (hard constraint)
+## Allowed language models (hard constraint — G3)
 
 Orchestration, voice, and RAG are open. **The LLM is not:**
 
@@ -109,20 +116,24 @@ Orchestration, voice, and RAG are open. **The LLM is not:**
 | Llama via Groq | Paid GPT / other families |
 | Local Llama 3.x 1B–3B or Phi Mini (Ollama) | |
 
-Default in this repo: **Groq + Llama** (low latency for voice). Alternative: set `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` (see `.env.example`). Details: [`docs/challenge/stack-tecnico.md`](./docs/challenge/stack-tecnico.md).
+Default in this repo: **Groq + Llama**. Alternative: `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` (see `.env.example`). Details: [`docs/challenge/stack-tecnico.md`](./docs/challenge/stack-tecnico.md).
 
 ---
 
-## After lift — 2-minute smoke demo
+## After lift — 2-minute smoke demo (not on the 15‑min clock)
 
-1. **Call** tab → pick a demo patient (e.g. day 7 · rojo) or edit a free patient.  
+Use this **after** `make verify` succeeds and the UI is open:
+
+1. **Call** → pick a demo patient (e.g. day 7 · crítico) or edit a free patient.  
 2. Speak or type a symptom from the on-screen hint (hint is actor-only; not sent to the model).  
-3. Ask a clinical care question → reply should include `sources`.  
-4. **Knowledge** tab → upload a small `.txt` / `.pdf` → ask about it → delete → agent stops using it.  
-5. Say “no puedo respirar” or “quiero un doctor” → escalate.  
-6. **End call** → structured summary card.
+3. Ask a clinical care question → reply should show **sources**.  
+4. **Knowledge** → upload a small `.txt` / `.pdf` → ask about it → **Eliminar** → agent stops using it.  
+5. Say “no puedo respirar” or “quiero un doctor” → **escalate**.  
+6. **End call** → structured summary card (latency / tokens).
 
-Seed protocol is loaded automatically on backend start (enough for lift + basic RAG). Official clinical PDFs are optional (next section).
+Voice TTS defaults to **Web Speech** (fast). Kokoro / Piper are optional local engines after `make warm-kokoro` / `make warm-piper`.
+
+Seed protocol loads automatically on backend start (enough for lift + basic RAG). Official clinical PDFs are optional (next section).
 
 ---
 
@@ -141,43 +152,31 @@ Results: `samples/eval_escalate_results.json` (gitignored).
 
 ---
 
-## Metrics (challenge §5)
+## Metrics (challenge §5) — after lift
 
-Instrumentado en código. Tras una llamada de voz, el **resumen al colgar** muestra totales y P50/P95; cada burbuja del agente muestra `e2e` / `api` / `tok`.
-
-### How we measure
+Instrumented in code. Numbers below are from a sample voice call; refresh with a live hang-up card (not part of cold start).
 
 | Metric | Definition in this repo |
 |---|---|
-| **E2E latency** (official) | `performance.now()` when Web Speech STT returns the final transcript → TTS `utterance.onstart` (agent audio begins) |
-| **Agent latency** (server) | Backend `latency_ms`: RAG retrieve + LLM + safety |
-| **Tokens** | Groq `usage.prompt_tokens` / `completion_tokens` (Gemini: `usageMetadata`) |
+| **E2E latency** (official) | STT final transcript → TTS audio start (`performance.now`) |
+| **Agent latency** (server) | Backend `latency_ms`: RAG + LLM + safety |
+| **Tokens** | Groq `usage` (or Gemini `usageMetadata`) |
 | **Invocations / RAG** | **1** model call and **1** retrieve per patient turn |
-| **Cost** | `(tokens_in/1e6)*$0.59 + (tokens_out/1e6)*$0.79` list price for Llama 3.3 70B on Groq; free tier ≈ $0 at runtime |
+| **Cost** | Groq Llama 3.3 70B list-price estimate; free tier ≈ $0 at runtime |
 
-### How to refresh numbers
+### Observed sample (10 mic turns)
 
-1. `make backend` + `make frontend` with Groq key  
-2. Call tab → **Hablar** for ≥10 voice turns (mic on, voice out on)  
-3. End call → read P50/P95 e2e + token totals on the summary card (also in JSON)  
-4. Paste into the table below
+Groq `llama-3.3-70b-versatile` · Web Speech STT + TTS · caso día 7 crítico.
 
-### Observed sample (voice call, 10 mic turns)
+| Metric | Value |
+|---|---|
+| E2E P50 / P95 | **1136 / 1427 ms** |
+| Agent-turn P50 / P95 | **1044 / 1337 ms** |
+| Invocations / RAG per turn | **1 / 1** |
+| Tokens in / out | **8422 / 2208** |
+| Est. cost / call | **$0.0067 USD** |
 
-Groq `llama-3.3-70b-versatile` · Web Speech STT + Web Speech TTS · caso día 7 crítico · resumen al colgar.
-
-| Metric | Value | Notes |
-|---|---|---|
-| E2E voice latency P50 | **1136 ms** | STT final → TTS audio start |
-| E2E voice latency P95 | **1427 ms** | Same call |
-| Agent-turn latency P50 | **1044 ms** | Backend RAG + LLM + safety (`api`) |
-| Agent-turn latency P95 | **1337 ms** | Same call |
-| Model invocations / turn | **1** | 10 inv / 10 turns |
-| RAG queries / turn | **1** | 10 RAG / 10 turns |
-| Tokens in / out | **8422 / 2208** | Call totals (Groq usage) |
-| Est. cost / call | **$0.0067 USD** | Prod list-price estimate; free tier ≈ $0 at runtime |
-
-Offline kit check (`make eval-escalate`) previously showed agent-turn ~1.5 s / ~2.2 s P50/P95 on 10 text cases — use the voice hang-up card for the official E2E numbers above.
+How to refresh: run a ≥10-turn voice call → End call → read P50/P95 on the summary card. More detail: [`docs/informe-tecnico.md`](./docs/informe-tecnico.md).
 
 ---
 
@@ -188,15 +187,14 @@ Offline kit check (`make eval-escalate`) previously showed agent-turn ~1.5 s / ~
 | RAG | Upload `.txt/.md/.pdf`, list, delete; local retrieval + citations |
 | Agent | Orchestration + safety + JSON contract |
 | Calls | History + hang-up summary |
-| Voice | Browser Web Speech STT + TTS selector: **Web Speech (default)** · Kokoro · Piper |
+| Voice | Web Speech STT + TTS (Web Speech default; Kokoro / Piper optional) |
 | UI | Knowledge console + call interface |
-
-Adapters: `backend/app/agent/llm_groq.py`, `llm_gemini.py`. Factory: `factory.py`.
 
 ## Tests
 
 ```bash
-make test
+make test          # unit / API tests
+make smoke-app     # live smoke (backend must be running)
 ```
 
 ## Submission deliverables
@@ -206,7 +204,7 @@ make test
 | 01 | Public repo + cold-start README | this file |
 | 02 | Architecture + decision-flow diagram | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | 03 | Technical report (model + why, prompts) | [`docs/informe-tecnico.md`](./docs/informe-tecnico.md) |
-| 04 | Demo video + 2 on-camera answers | record with [`docs/guion-video.md`](./docs/guion-video.md) |
+| 04 | Demo video + 2 on-camera answers | [`docs/guion-video.md`](./docs/guion-video.md) |
 
 Must prove in session/video: ≤15 min lift, allowed LLM, realtime voice, upload/delete knowledge.  
 Scoring: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).
