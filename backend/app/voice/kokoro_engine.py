@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import io
 import threading
-from functools import lru_cache
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from app.config import Settings, get_settings
+from app.config import Settings
 
 # Spanish clinical demo voice (Kokoro multilingual).
 DEFAULT_KOKORO_VOICE = "ef_dora"
@@ -25,7 +24,7 @@ class KokoroEngine:
         self.settings = settings
         self._lock = threading.Lock()
         self._kokoro = None
-        self._error: Optional[str] = None
+        self.last_error: Optional[str] = None
 
     @property
     def model_path(self) -> Path:
@@ -38,24 +37,19 @@ class KokoroEngine:
     def files_present(self) -> bool:
         return self.model_path.is_file() and self.voices_path.is_file()
 
-    def available(self) -> bool:
-        """True when provider wants Kokoro and model files are on disk (lazy-load later)."""
-        if self.settings.tts_provider.strip().lower() not in {"kokoro", "auto"}:
-            return False
-        return self.files_present()
+    def list_voices(self) -> List[dict]:
+        return [{"id": vid, "label": label} for vid, label in SUPPORTED_VOICES]
 
     def status(self) -> dict:
-        provider = self.settings.tts_provider.strip().lower()
         return {
-            "provider_setting": provider,
+            "provider_setting": self.settings.tts_provider.strip().lower(),
             "files_present": self.files_present(),
-            "ready": self.available(),
             "loaded": self._kokoro is not None,
             "model_path": str(self.model_path),
             "voices_path": str(self.voices_path),
-            "default_voice": self.settings.kokoro_voice,
-            "error": self._error,
-            "voices": [{"id": vid, "label": label} for vid, label in SUPPORTED_VOICES],
+            "default_voice": self.settings.kokoro_voice or DEFAULT_KOKORO_VOICE,
+            "error": self.last_error,
+            "voices": self.list_voices(),
         }
 
     def _ensure_loaded(self) -> None:
@@ -69,10 +63,14 @@ class KokoroEngine:
                     f"Kokoro model files missing. Run: make warm-kokoro "
                     f"(expected {self.model_path.name} + {self.voices_path.name})"
                 )
-            from kokoro_onnx import Kokoro
+            try:
+                from kokoro_onnx import Kokoro
 
-            self._kokoro = Kokoro(str(self.model_path), str(self.voices_path))
-            self._error = None
+                self._kokoro = Kokoro(str(self.model_path), str(self.voices_path))
+                self.last_error = None
+            except Exception as exc:  # noqa: BLE001 — surfaced via status / HTTP
+                self.last_error = str(exc)
+                raise
 
     def warmup(self) -> None:
         self._ensure_loaded()
@@ -105,11 +103,3 @@ class KokoroEngine:
         buf = io.BytesIO()
         sf.write(buf, samples, sample_rate, format="WAV")
         return buf.getvalue(), "audio/wav"
-
-    def list_voices(self) -> List[dict]:
-        return [{"id": vid, "label": label} for vid, label in SUPPORTED_VOICES]
-
-
-@lru_cache
-def get_kokoro_engine() -> KokoroEngine:
-    return KokoroEngine(get_settings())

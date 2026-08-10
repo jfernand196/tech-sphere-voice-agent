@@ -9,7 +9,7 @@ export type KokoroVoiceOption = {
 export type TtsCapabilities = {
   mode: "kokoro" | "browser" | string;
   kokoro?: {
-    ready?: boolean;
+    files_present?: boolean;
     default_voice?: string;
     voices?: Array<{ id: string; label: string }>;
   };
@@ -18,6 +18,13 @@ export type TtsCapabilities = {
 let cachedCaps: TtsCapabilities | null = null;
 let currentAudio: HTMLAudioElement | null = null;
 let audioToken = 0;
+
+function haltCurrentAudio(): void {
+  if (!currentAudio) return;
+  currentAudio.pause();
+  currentAudio.src = "";
+  currentAudio = null;
+}
 
 export async function loadTtsCapabilities(
   force = false,
@@ -52,11 +59,7 @@ export function defaultKokoroVoice(): string {
 
 export function stopKokoroAudio(): void {
   audioToken += 1;
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.src = "";
-    currentAudio = null;
-  }
+  haltCurrentAudio();
 }
 
 export async function speakWithKokoro(
@@ -69,13 +72,8 @@ export async function speakWithKokoro(
   const cleaned = text.trim();
   if (!cleaned) return;
 
-  // Cancel any in-flight playback, then claim a fresh token for this utterance.
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.src = "";
-    currentAudio = null;
-  }
   const myToken = ++audioToken;
+  haltCurrentAudio();
 
   const res = await fetch("/api/voice/tts", {
     method: "POST",

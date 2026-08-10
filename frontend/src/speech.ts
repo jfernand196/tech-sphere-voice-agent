@@ -134,8 +134,8 @@ function pickBestSpanishVoice(
   return ranked.find((v) => v.lang.toLowerCase().startsWith("es")) ?? ranked[0] ?? null;
 }
 
-/** Soften text for TTS: less “robot reading a protocol”. */
-function prepareSpokenText(text: string): string {
+/** Soften text for TTS (Kokoro + browser): less “robot reading a protocol”. */
+export function prepareSpokenText(text: string): string {
   return text
     .replace(/\b(\d+)\.(\d+)\s*°?\s*C\b/gi, "$1 coma $2 grados")
     .replace(/\b(\d+)\s*°?\s*C\b/gi, "$1 grados")
@@ -147,8 +147,7 @@ function prepareSpokenText(text: string): string {
     .trim();
 }
 
-function splitForSpeech(text: string): string[] {
-  const prepared = prepareSpokenText(text);
+function splitForSpeech(prepared: string): string[] {
   const parts = prepared
     .split(/(?<=[.!?])\s+/)
     .map((p) => p.trim())
@@ -234,7 +233,8 @@ async function speakBrowser(text: string, options: SpeakOptions = {}): Promise<v
 }
 
 export async function speak(text: string, options: SpeakOptions = {}): Promise<void> {
-  if (!text.trim()) return;
+  const prepared = prepareSpokenText(text);
+  if (!prepared) return;
 
   const { getCachedTtsMode, speakWithKokoro, loadTtsCapabilities } = await import(
     "./kokoroTts"
@@ -242,20 +242,18 @@ export async function speak(text: string, options: SpeakOptions = {}): Promise<v
   await loadTtsCapabilities();
 
   if (getCachedTtsMode() === "kokoro") {
-    const myToken = ++speakToken;
     try {
-      await speakWithKokoro(text, {
+      await speakWithKokoro(prepared, {
         voiceName: options.voiceName,
         onStart: options.onStart,
       });
       return;
     } catch (err) {
       console.warn("Kokoro TTS failed; falling back to browser speechSynthesis", err);
-      if (myToken !== speakToken) return;
     }
   }
 
-  return speakBrowser(text, options);
+  return speakBrowser(prepared, options);
 }
 
 export type ListenResult = {
