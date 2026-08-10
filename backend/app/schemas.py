@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class Severity(str, Enum):
@@ -93,7 +97,7 @@ class CallMessage(BaseModel):
     tokens_out: Optional[int] = None
     model_invocations: Optional[int] = None
     rag_queries: Optional[int] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utc_now)
 
 
 class CallSummary(BaseModel):
@@ -107,7 +111,7 @@ class CallSummary(BaseModel):
     sources_used: List[SourceCitation]
     summary_text: str
     turn_count: int
-    ended_at: datetime = Field(default_factory=datetime.utcnow)
+    ended_at: datetime = Field(default_factory=_utc_now)
     # Challenge metrics (§5)
     tokens_in_total: int = 0
     tokens_out_total: int = 0
@@ -130,7 +134,7 @@ class CallRecord(BaseModel):
     status: str = "active"
     messages: List[CallMessage] = Field(default_factory=list)
     summary: Optional[CallSummary] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utc_now)
     ended_at: Optional[datetime] = None
 
 

@@ -120,6 +120,12 @@ def test_dim_mismatch_marks_reembed(tmp_path: Path) -> None:
     assert store2.needs_reembed is True
     assert store2._chunks == []
     assert store2.list_documents()  # catalog preserved
+    # Plaintext archived before wipe so rebuild can run without upload path.
+    docs = store2.list_documents()
+    assert docs
+    source = Path(docs[0].metadata["source_path"])
+    assert source.is_file()
+    assert "fiebre" in source.read_text(encoding="utf-8").lower()
 
 
 def test_empty_chunks_with_catalog_marks_reembed(tmp_path: Path) -> None:
@@ -152,6 +158,68 @@ def test_empty_chunks_with_catalog_marks_reembed(tmp_path: Path) -> None:
     assert store.needs_reembed is True
     assert store._chunks == []
     assert store.list_documents()
+
+
+def test_rebuild_preserves_pathless_docs_via_snapshot(tmp_path: Path) -> None:
+    from app.config import Settings
+    from app.rag.service import KnowledgeService
+
+    settings = Settings(data_dir=tmp_path / "data", embed_provider="hash")
+    ks = KnowledgeService(settings, embedder=HashEmbedder())
+    info = ks.ingest_text(
+        title="Seed pathless",
+        filename="seed.txt",
+        text="Fiebre postoperatoria y dolor de herida requieren seguimiento cercano.",
+        metadata={"seed": True},
+    )
+    assert info.metadata.get("source_path")
+    assert Path(info.metadata["source_path"]).is_file()
+
+    # Simulate embedder change wipe.
+    ks.store.archive_sources_from_chunks()
+    ks.store.clear_vectors(mark_docs_pending=True)
+    ks.store.needs_reembed = True
+    ks.store._persist()
+
+    rebuilt = ks.rebuild_stale_embeddings()
+    assert rebuilt == 1
+    assert ks.store.needs_reembed is False
+    assert ks.index_stats()["rag_ok"] is True
+    hits = ks.retrieve("fiebre en la herida", top_k=1)
+    assert hits
+    assert hits[0].title == "Seed pathless"
+
+
+def test_rebuild_resumes_after_partial_progress(tmp_path: Path) -> None:
+    from app.config import Settings
+    from app.rag.service import KnowledgeService
+
+    settings = Settings(data_dir=tmp_path / "data", embed_provider="hash")
+    ks = KnowledgeService(settings, embedder=HashEmbedder())
+    a = ks.ingest_text(
+        title="Doc A",
+        filename="a.txt",
+        text="Protocolo de herida limpia y seca después de cirugía abdominal.",
+    )
+    b = ks.ingest_text(
+        title="Doc B",
+        filename="b.txt",
+        text="Escalofríos y temperatura alta son signos de alarma postoperatoria.",
+    )
+    # Pretend only B is still pending after an interrupted rebuild.
+    ks.store.drop_chunks_for(b.doc_id, mark_pending=True)
+    ks.store.needs_reembed = True
+    ks.store._persist()
+
+    rebuilt = ks.rebuild_stale_embeddings()
+    assert rebuilt == 1
+    assert ks.store.needs_reembed is False
+    titles = {d.title for d in ks.list_documents()}
+    assert titles == {"Doc A", "Doc B"}
+    assert ks.store.get_document(a.doc_id) is not None
+    hits = ks.retrieve("escalofríos temperatura", top_k=1)
+    assert hits
+    assert hits[0].title == "Doc B"
 
 
 @pytest.mark.slow

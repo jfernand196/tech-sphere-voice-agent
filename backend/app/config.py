@@ -44,6 +44,11 @@ class Settings(BaseSettings):
         return self.data_dir / "uploads"
 
     @property
+    def sources_dir(self) -> Path:
+        """Plaintext snapshots for rebuild when upload path is missing."""
+        return self.data_dir / "sources"
+
+    @property
     def vector_store_dir(self) -> Path:
         return self.data_dir / "vector_store"
 
@@ -81,6 +86,7 @@ def get_settings() -> Settings:
     settings = Settings()
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.uploads_dir.mkdir(parents=True, exist_ok=True)
+    settings.sources_dir.mkdir(parents=True, exist_ok=True)
     settings.vector_store_dir.mkdir(parents=True, exist_ok=True)
     settings.kokoro_dir.mkdir(parents=True, exist_ok=True)
     settings.piper_dir.mkdir(parents=True, exist_ok=True)
