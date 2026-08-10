@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { formatPairMs, hasMeaningfulCallMetrics } from "../callFormat";
+import {
+  dedupeTrimmedStrings,
+  formatPairMs,
+  hasMeaningfulCallMetrics,
+} from "../callFormat";
 import { severityText } from "../clinicalFormat";
 import { useLocale } from "../i18n/LocaleContext";
 import { displayDocTitle } from "../knowledgeFormat";
 import type { CallSummary } from "../types";
+import ChipRow from "./ChipRow";
 import Disclosure from "./Disclosure";
 
 type Props = {
@@ -11,15 +16,31 @@ type Props = {
   onNewCall: () => void;
 };
 
-function ChipList({ items }: { items: string[] }) {
+const SYMPTOM_CHIP_LIMIT = 6;
+
+function SymptomChips({ items }: { items: string[] }) {
+  const { t } = useLocale();
+  const [expanded, setExpanded] = useState(false);
+  const unique = dedupeTrimmedStrings(items);
+  const hidden = Math.max(0, unique.length - SYMPTOM_CHIP_LIMIT);
+  const visible =
+    expanded || hidden === 0 ? unique : unique.slice(0, SYMPTOM_CHIP_LIMIT);
+
   return (
-    <ul className="chip-row">
-      {items.map((s) => (
-        <li key={s} className="chip">
-          {s}
-        </li>
-      ))}
-    </ul>
+    <div className="symptom-chips">
+      <ChipRow items={visible.map((s) => ({ key: s, label: s }))} />
+      {hidden > 0 ? (
+        <button
+          type="button"
+          className="symptom-chips__more"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded
+            ? t("summary.showFewerSymptoms")
+            : t("summary.showMoreSymptoms", { n: hidden })}
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -84,6 +105,23 @@ function ChallengeMetrics({ summary }: { summary: CallSummary }) {
   );
 }
 
+function SourceChips({
+  sources,
+}: {
+  sources: CallSummary["sources_used"];
+}) {
+  return (
+    <ChipRow
+      items={sources.map((s) => ({
+        key: s.chunk_id,
+        label: displayDocTitle(s.title, 42),
+        title: s.title,
+        className: "chip chip--source",
+      }))}
+    />
+  );
+}
+
 export default function CallSummaryCard({ summary, onNewCall }: Props) {
   const { t } = useLocale();
   const [showRaw, setShowRaw] = useState(false);
@@ -95,9 +133,18 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
           <p className="eyebrow">{t("summary.eyebrow")}</p>
           <h3>{t("summary.title")}</h3>
         </div>
-        <span className={`badge ${summary.escalate ? "badge--danger" : "badge--ok"}`}>
-          {summary.escalate ? t("summary.alertYes") : t("summary.alertNo")}
-        </span>
+        <div className="summary-card__alert">
+          <span
+            className={`badge ${summary.escalate ? "badge--danger" : "badge--ok"}`}
+          >
+            {summary.escalate ? t("summary.alertYes") : t("summary.alertNo")}
+          </span>
+          {summary.escalate_reason ? (
+            <p className="summary-reason">
+              {t("summary.escalateReason", { reason: summary.escalate_reason })}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <p className="summary-card__text">{summary.summary_text}</p>
@@ -123,7 +170,7 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
           <dt>{t("summary.symptoms")}</dt>
           <dd>
             {summary.symptoms.length ? (
-              <ChipList items={summary.symptoms} />
+              <SymptomChips items={summary.symptoms} />
             ) : (
               t("summary.noSymptoms")
             )}
@@ -133,13 +180,7 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
           <dt>{t("summary.sources")}</dt>
           <dd>
             {summary.sources_used.length ? (
-              <ul className="chip-row">
-                {summary.sources_used.map((s) => (
-                  <li key={s.chunk_id} className="chip chip--source" title={s.title}>
-                    {displayDocTitle(s.title, 42)}
-                  </li>
-                ))}
-              </ul>
+              <SourceChips sources={summary.sources_used} />
             ) : (
               t("summary.noSources")
             )}
@@ -148,12 +189,6 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
       </dl>
 
       <ChallengeMetrics summary={summary} />
-
-      {summary.escalate_reason ? (
-        <p className="summary-reason">
-          {t("summary.escalateReason", { reason: summary.escalate_reason })}
-        </p>
-      ) : null}
 
       <div className="summary-actions">
         <button type="button" onClick={onNewCall}>
@@ -168,7 +203,9 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
         </button>
       </div>
 
-      {showRaw ? <pre className="raw-json">{JSON.stringify(summary, null, 2)}</pre> : null}
+      {showRaw ? (
+        <pre className="raw-json">{JSON.stringify(summary, null, 2)}</pre>
+      ) : null}
     </section>
   );
 }
