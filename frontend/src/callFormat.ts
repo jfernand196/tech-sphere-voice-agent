@@ -23,12 +23,15 @@ export function formatPairMs(p50?: number | null, p95?: number | null): string {
   return `${p50 ?? "—"}/${p95 ?? "—"} ms`;
 }
 
-export function hasCallMetrics(summary: CallSummary): boolean {
+/** True when there is something useful to show (not a wall of zeros). */
+export function hasMeaningfulCallMetrics(summary: CallSummary): boolean {
   return (
-    summary.tokens_in_total != null ||
-    summary.model_invocations_total != null ||
-    summary.agent_latency_p50_ms != null ||
-    summary.e2e_latency_p50_ms != null ||
-    summary.cost_usd_estimate != null
+    (summary.tokens_in_total ?? 0) > 0 ||
+    (summary.tokens_out_total ?? 0) > 0 ||
+    (summary.model_invocations_total ?? 0) > 0 ||
+    (summary.rag_queries_total ?? 0) > 0 ||
+    (summary.agent_latency_p50_ms ?? 0) > 0 ||
+    (summary.e2e_latency_p50_ms ?? 0) > 0 ||
+    (summary.cost_usd_estimate ?? 0) > 0
   );
 }

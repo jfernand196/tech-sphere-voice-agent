@@ -75,6 +75,8 @@ export const en: Record<MessageKey, string> = {
   "summary.procedure": "Procedure",
   "summary.severity": "Severity",
   "summary.turns": "Turns",
+  "summary.metricsKicker": "Challenge",
+  "summary.metricsTitle": "Challenge metrics",
   "summary.tokens": "Tokens (in/out)",
   "summary.llmRag": "LLM / RAG",
   "summary.llmRagValue": "{inv} calls · {rag} RAG",

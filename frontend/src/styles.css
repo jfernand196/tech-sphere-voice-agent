@@ -475,43 +475,39 @@ button.danger {
   font-weight: 500;
 }
 
-.voice-details {
-  margin-bottom: 0.85rem;
+.disclosure {
   border: 1px solid var(--line);
   border-radius: 0.85rem;
-  background: rgba(255, 255, 255, 0.65);
-  padding: 0.35rem 0.75rem 0.55rem;
+  background: rgba(255, 255, 255, 0.68);
+  padding: 0.35rem 0.8rem 0.55rem;
 }
 
-.voice-details summary {
+.disclosure summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--muted);
-  padding: 0.45rem 0.15rem;
   list-style: none;
+  padding: 0.45rem 0.1rem;
 }
 
-.voice-details summary::-webkit-details-marker {
+.disclosure summary::-webkit-details-marker {
   display: none;
 }
 
-.voice-details summary::marker {
+.disclosure summary::marker {
   content: "";
 }
 
-.voice-details__text {
+.disclosure__text {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.08rem;
   min-width: 0;
 }
 
-.voice-details__kicker {
+.disclosure__kicker {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -519,12 +515,13 @@ button.danger {
   color: var(--muted);
 }
 
-.voice-details__status {
-  color: var(--ink);
+.disclosure__title {
+  font-size: 0.92rem;
   font-weight: 600;
+  color: var(--ink);
 }
 
-.voice-details__chevron {
+.disclosure__chevron {
   flex-shrink: 0;
   font-size: 0.95rem;
   line-height: 1;
@@ -532,18 +529,31 @@ button.danger {
   transition: transform 0.15s ease;
 }
 
-.voice-details[open] summary {
+.disclosure[open] summary {
   margin-bottom: 0.35rem;
 }
 
-.voice-details[open] .voice-details__chevron {
+.disclosure[open] .disclosure__chevron {
   transform: rotate(-180deg);
 }
 
-.voice-details .voice-bar {
+.disclosure--voice {
+  margin-bottom: 0.85rem;
+}
+
+.disclosure--voice .voice-bar {
   margin-bottom: 0.25rem;
   padding-top: 0.15rem;
   border-top: 1px solid var(--line);
+}
+
+.disclosure--metrics {
+  margin: 1rem 0 0;
+}
+
+.disclosure--metrics[open] summary {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.55rem;
 }
 
 .call-meta__patient {
@@ -748,6 +758,11 @@ button:focus-visible,
 
 .summary-grid__wide {
   grid-column: 1 / -1;
+}
+
+.summary-grid--metrics {
+  margin-top: 0.55rem;
+  padding-bottom: 0.25rem;
 }
 
 .summary-grid dt {
