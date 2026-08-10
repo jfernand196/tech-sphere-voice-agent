@@ -129,6 +129,7 @@ export function useCallSession({ onAgentReply }: Options = {}) {
   async function end() {
     if (!callId) return;
     setBusy(true);
+    setError(null);
     try {
       const res = await endCall(callId, e2eSamplesRef.current);
       setSummary(res);

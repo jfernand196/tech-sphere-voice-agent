@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { formatPairMs, hasCallMetrics } from "../callFormat";
+import { formatPairMs, hasMeaningfulCallMetrics } from "../callFormat";
 import { severityText } from "../clinicalFormat";
 import { useLocale } from "../i18n/LocaleContext";
 import { displayDocTitle } from "../knowledgeFormat";
 import type { CallSummary } from "../types";
+import Disclosure from "./Disclosure";
 
 type Props = {
   summary: CallSummary;
@@ -22,51 +23,64 @@ function ChipList({ items }: { items: string[] }) {
   );
 }
 
-function MetricsBlock({ summary }: { summary: CallSummary }) {
+function ChallengeMetrics({ summary }: { summary: CallSummary }) {
   const { t } = useLocale();
-  if (!hasCallMetrics(summary)) return null;
+  if (!hasMeaningfulCallMetrics(summary)) return null;
+
   return (
-    <>
-      <div>
-        <dt>{t("summary.tokens")}</dt>
-        <dd>
-          {summary.tokens_in_total ?? 0} / {summary.tokens_out_total ?? 0}
-        </dd>
-      </div>
-      <div>
-        <dt>{t("summary.llmRag")}</dt>
-        <dd>
-          {t("summary.llmRagValue", {
-            inv: summary.model_invocations_total ?? 0,
-            rag: summary.rag_queries_total ?? 0,
-          })}
-        </dd>
-      </div>
-      <div className="summary-grid__wide">
-        <dt>{t("summary.latency")}</dt>
-        <dd>
-          {summary.e2e_latency_p50_ms != null ? (
-            <>
-              {t("summary.latencyE2e", {
-                pair: formatPairMs(summary.e2e_latency_p50_ms, summary.e2e_latency_p95_ms),
-              })}{" "}
-              ·{" "}
-            </>
-          ) : null}
-          {t("summary.latencyApi", {
-            pair: formatPairMs(summary.agent_latency_p50_ms, summary.agent_latency_p95_ms),
-          })}
-        </dd>
-      </div>
-      {summary.cost_usd_estimate != null ? (
-        <div className="summary-grid__wide">
-          <dt>{t("summary.cost")}</dt>
-          <dd title={summary.cost_note ?? undefined}>
-            ${summary.cost_usd_estimate.toFixed(4)} USD
+    <Disclosure
+      className="disclosure--metrics"
+      kicker={t("summary.metricsKicker")}
+      title={t("summary.metricsTitle")}
+    >
+      <dl className="summary-grid summary-grid--metrics">
+        <div>
+          <dt>{t("summary.tokens")}</dt>
+          <dd>
+            {summary.tokens_in_total ?? 0} / {summary.tokens_out_total ?? 0}
           </dd>
         </div>
-      ) : null}
-    </>
+        <div>
+          <dt>{t("summary.llmRag")}</dt>
+          <dd>
+            {t("summary.llmRagValue", {
+              inv: summary.model_invocations_total ?? 0,
+              rag: summary.rag_queries_total ?? 0,
+            })}
+          </dd>
+        </div>
+        <div className="summary-grid__wide">
+          <dt>{t("summary.latency")}</dt>
+          <dd>
+            {summary.e2e_latency_p50_ms != null ? (
+              <>
+                {t("summary.latencyE2e", {
+                  pair: formatPairMs(
+                    summary.e2e_latency_p50_ms,
+                    summary.e2e_latency_p95_ms,
+                  ),
+                })}{" "}
+                ·{" "}
+              </>
+            ) : null}
+            {t("summary.latencyApi", {
+              pair: formatPairMs(
+                summary.agent_latency_p50_ms,
+                summary.agent_latency_p95_ms,
+              ),
+            })}
+          </dd>
+        </div>
+        {summary.cost_usd_estimate != null ? (
+          <div className="summary-grid__wide">
+            <dt>{t("summary.cost")}</dt>
+            <dd title={summary.cost_note ?? undefined}>
+              ${summary.cost_usd_estimate.toFixed(4)} USD
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+    </Disclosure>
   );
 }
 
@@ -105,7 +119,6 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
           <dt>{t("summary.turns")}</dt>
           <dd>{summary.turn_count}</dd>
         </div>
-        <MetricsBlock summary={summary} />
         <div className="summary-grid__wide">
           <dt>{t("summary.symptoms")}</dt>
           <dd>
@@ -133,6 +146,8 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
           </dd>
         </div>
       </dl>
+
+      <ChallengeMetrics summary={summary} />
 
       {summary.escalate_reason ? (
         <p className="summary-reason">
