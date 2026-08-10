@@ -329,13 +329,78 @@ h2 {
   background: rgba(255, 255, 255, 0.8);
 }
 
-.toggle {
+.voice-switch {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  color: var(--muted);
+  gap: 0.55rem;
+  color: var(--ink);
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.voice-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.voice-switch__track {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.4rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: #c5d0db;
+  border: 1px solid #b0bdc9;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.voice-switch__thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 2px rgba(15, 27, 45, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.voice-switch input:checked + .voice-switch__track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.voice-switch input:checked + .voice-switch__track .voice-switch__thumb {
+  transform: translateX(1.05rem);
+}
+
+.voice-switch input:focus-visible + .voice-switch__track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.voice-switch:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.voice-bar__tune {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  transition: opacity 0.15s ease;
+}
+
+.voice-bar__tune--dimmed {
+  opacity: 0.42;
 }
 
 .voice-select {

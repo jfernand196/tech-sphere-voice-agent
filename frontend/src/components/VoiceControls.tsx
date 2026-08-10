@@ -85,54 +85,65 @@ function Controls({
   const showEngineSelect = kokoroReady || piperReady;
   return (
     <div className="voice-bar">
-      <label className="toggle">
+      <label className="voice-switch">
         <input
           type="checkbox"
+          role="switch"
           checked={voiceOut}
+          aria-label={t("voice.agentVoiceAria")}
           onChange={(e) => onVoiceOutChange(e.target.checked)}
           disabled={!speechSupported}
         />
-        <span>{t("voice.speakReplies")}</span>
+        <span className="voice-switch__track" aria-hidden="true">
+          <span className="voice-switch__thumb" />
+        </span>
+        <span className="voice-switch__label">{t("voice.agentVoice")}</span>
       </label>
 
-      {showEngineSelect ? (
+      <div
+        className={
+          voiceOut ? "voice-bar__tune" : "voice-bar__tune voice-bar__tune--dimmed"
+        }
+      >
+        {showEngineSelect ? (
+          <label className="voice-select">
+            <span className="voice-select__label">{t("voice.engineLabel")}</span>
+            <select
+              value={ttsEngine}
+              aria-label={t("voice.engineAria")}
+              onChange={(e) => onTtsEngineChange(e.target.value as TtsEngine)}
+            >
+              <option value="browser">{t("voice.engineBrowser")}</option>
+              {kokoroReady ? (
+                <option value="kokoro">{t("voice.engineKokoro")}</option>
+              ) : null}
+              {piperReady ? (
+                <option value="piper">{t("voice.enginePiper")}</option>
+              ) : null}
+            </select>
+          </label>
+        ) : null}
+
         <label className="voice-select">
-          <span className="voice-select__label">{t("voice.engineLabel")}</span>
+          <span className="voice-select__label">{t("voice.voiceLabel")}</span>
           <select
-            value={ttsEngine}
-            aria-label={t("voice.engineAria")}
-            onChange={(e) => onTtsEngineChange(e.target.value as TtsEngine)}
+            value={voiceName}
+            aria-label={t("voice.selectAria")}
+            disabled={!speechSupported || voices.length === 0}
+            onChange={(e) => onVoiceNameChange(e.target.value)}
           >
-            <option value="browser">{t("voice.engineBrowser")}</option>
-            {kokoroReady ? (
-              <option value="kokoro">{t("voice.engineKokoro")}</option>
-            ) : null}
-            {piperReady ? (
-              <option value="piper">{t("voice.enginePiper")}</option>
-            ) : null}
+            {voices.length === 0 ? (
+              <option value="">{t("voice.loading")}</option>
+            ) : (
+              voices.map((v) => (
+                <option key={`${v.name}-${v.lang}`} value={v.name}>
+                  {v.label}
+                </option>
+              ))
+            )}
           </select>
         </label>
-      ) : null}
-
-      <label className="voice-select">
-        <span className="voice-select__label">{t("voice.voiceLabel")}</span>
-        <select
-          value={voiceName}
-          aria-label={t("voice.selectAria")}
-          disabled={!speechSupported || voices.length === 0}
-          onChange={(e) => onVoiceNameChange(e.target.value)}
-        >
-          {voices.length === 0 ? (
-            <option value="">{t("voice.loading")}</option>
-          ) : (
-            voices.map((v) => (
-              <option key={`${v.name}-${v.lang}`} value={v.name}>
-                {v.label}
-              </option>
-            ))
-          )}
-        </select>
-      </label>
+      </div>
 
       <button
         type="button"
