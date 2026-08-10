@@ -57,7 +57,8 @@ export const en: Record<MessageKey, string> = {
   "call.errorNoSpeechApi":
     "Your browser does not support speech recognition. Use Chrome and type instead.",
 
-  "voice.speakReplies": "Speak replies",
+  "voice.agentVoice": "Agent speaks replies",
+  "voice.agentVoiceAria": "Turn agent voice on or off",
   "voice.selectAria": "Select voice",
   "voice.engineAria": "Speech engine",
   "voice.engineLabel": "Engine",

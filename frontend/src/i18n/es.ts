@@ -55,7 +55,8 @@ export const es = {
   "call.errorNoSpeechApi":
     "Tu navegador no soporta reconocimiento de voz. Usa Chrome y escribe el texto.",
 
-  "voice.speakReplies": "Hablar respuestas",
+  "voice.agentVoice": "Voz del agente",
+  "voice.agentVoiceAria": "Activar o desactivar la voz del agente",
   "voice.selectAria": "Seleccionar voz",
   "voice.engineAria": "Motor de voz",
   "voice.engineLabel": "Motor",
