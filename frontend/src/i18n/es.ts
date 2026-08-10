@@ -73,6 +73,8 @@ export const es = {
   "summary.procedure": "Procedimiento",
   "summary.severity": "Severidad",
   "summary.turns": "Turnos",
+  "summary.metricsKicker": "Reto",
+  "summary.metricsTitle": "Métricas del reto",
   "summary.tokens": "Tokens (in/out)",
   "summary.llmRag": "LLM / RAG",
   "summary.llmRagValue": "{inv} inv · {rag} RAG",

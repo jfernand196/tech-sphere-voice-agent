@@ -219,10 +219,6 @@ export default function CallPanel() {
       {phase === "ended" && call.summary ? (
         <CallSummaryCard summary={call.summary} onNewCall={resetForNewCall} />
       ) : null}
-
-      {phase === "ended" && call.error ? (
-        <p className="error banner-error">{call.error}</p>
-      ) : null}
     </section>
   );
 }

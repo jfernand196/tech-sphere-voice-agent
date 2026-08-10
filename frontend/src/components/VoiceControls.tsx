@@ -1,5 +1,6 @@
 import { useLocale } from "../i18n/LocaleContext";
 import type { VoiceOption } from "../speech";
+import Disclosure from "./Disclosure";
 
 type Props = {
   voiceOut: boolean;
@@ -114,22 +115,17 @@ export default function VoiceControls(props: Props) {
     : t("voice.summaryOff", { name });
 
   return (
-    <details className="voice-details">
-      <summary>
-        <span className="voice-details__text">
-          <span className="voice-details__kicker">{t("voice.settings")}</span>
-          <span className="voice-details__status">{status}</span>
-        </span>
-        <span className="voice-details__chevron" aria-hidden>
-          ▾
-        </span>
-      </summary>
+    <Disclosure
+      className="disclosure--voice"
+      kicker={t("voice.settings")}
+      title={status}
+    >
       <Controls
         voiceOut={voiceOut}
         voiceName={voiceName}
         voices={voices}
         {...rest}
       />
-    </details>
+    </Disclosure>
   );
 }
