@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from app.rag.embeddings import HashEmbedder
-from app.rag.store import DocumentRecord, LocalVectorStore, bm25_scores, rrf_fuse
+from app.rag.store import LocalVectorStore, bm25_scores, rrf_fuse
 
 
 def test_bm25_prefers_rare_term_match() -> None:
@@ -177,16 +177,7 @@ def test_rebuild_preserves_pathless_docs_via_snapshot(tmp_path: Path) -> None:
 
     # Simulate embedder change wipe.
     ks.store.archive_sources_from_chunks()
-    ks.store._chunks = []
-    for doc in list(ks.store.list_documents()):
-        ks.store._documents[doc.doc_id] = DocumentRecord(
-            doc_id=doc.doc_id,
-            title=doc.title,
-            filename=doc.filename,
-            chunk_count=0,
-            created_at=doc.created_at,
-            metadata=doc.metadata,
-        )
+    ks.store.clear_vectors(mark_docs_pending=True)
     ks.store.needs_reembed = True
     ks.store._persist()
 
@@ -216,17 +207,7 @@ def test_rebuild_resumes_after_partial_progress(tmp_path: Path) -> None:
         text="Escalofríos y temperatura alta son signos de alarma postoperatoria.",
     )
     # Pretend only B is still pending after an interrupted rebuild.
-    for doc in list(ks.store.list_documents()):
-        if doc.doc_id == b.doc_id:
-            ks.store._documents[doc.doc_id] = DocumentRecord(
-                doc_id=doc.doc_id,
-                title=doc.title,
-                filename=doc.filename,
-                chunk_count=0,
-                created_at=doc.created_at,
-                metadata=doc.metadata,
-            )
-            ks.store._chunks = [c for c in ks.store._chunks if c.doc_id != b.doc_id]
+    ks.store.drop_chunks_for(b.doc_id, mark_pending=True)
     ks.store.needs_reembed = True
     ks.store._persist()
 
@@ -235,7 +216,7 @@ def test_rebuild_resumes_after_partial_progress(tmp_path: Path) -> None:
     assert ks.store.needs_reembed is False
     titles = {d.title for d in ks.list_documents()}
     assert titles == {"Doc A", "Doc B"}
-    assert a.doc_id  # kept catalog continuity for A is not required (ids may change)
+    assert ks.store.get_document(a.doc_id) is not None
     hits = ks.retrieve("escalofríos temperatura", top_k=1)
     assert hits
     assert hits[0].title == "Doc B"

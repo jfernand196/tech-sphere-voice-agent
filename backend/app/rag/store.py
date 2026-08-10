@@ -46,6 +46,12 @@ class DocumentRecord:
     created_at: str
     metadata: dict
 
+    def evolve(self, **changes) -> "DocumentRecord":
+        """Return a copy with selected fields replaced (immutable-style update)."""
+        data = asdict(self)
+        data.update(changes)
+        return DocumentRecord(**data)
+
 
 def cosine(a: List[float], b: List[float]) -> float:
     if not a or not b or len(a) != len(b):
@@ -215,16 +221,7 @@ class LocalVectorStore:
         if self._chunks and stale_embedder:
             # Snapshot plaintext before wipe so path-less docs survive rebuild.
             self.archive_sources_from_chunks()
-            self._chunks = []
-            for doc_id, doc in list(self._documents.items()):
-                self._documents[doc_id] = DocumentRecord(
-                    doc_id=doc.doc_id,
-                    title=doc.title,
-                    filename=doc.filename,
-                    chunk_count=0,
-                    created_at=doc.created_at,
-                    metadata=doc.metadata,
-                )
+            self.clear_vectors(mark_docs_pending=True)
             self.needs_reembed = True
             self._persist()
             self._write_meta()
@@ -274,6 +271,26 @@ class LocalVectorStore:
     def chunks_for(self, doc_id: str) -> List[ChunkRecord]:
         return [c for c in self._chunks if c.doc_id == doc_id]
 
+    def has_vectors(self) -> bool:
+        return bool(self._chunks)
+
+    def clear_vectors(self, *, mark_docs_pending: bool = False) -> None:
+        self._chunks = []
+        if not mark_docs_pending:
+            return
+        for doc_id, doc in list(self._documents.items()):
+            self._documents[doc_id] = doc.evolve(chunk_count=0)
+
+    def drop_chunks_for(self, doc_id: str, *, mark_pending: bool = True) -> None:
+        """Remove vectors for one doc (simulates / resumes partial rebuild)."""
+        self._chunks = [c for c in self._chunks if c.doc_id != doc_id]
+        doc = self._documents.get(doc_id)
+        if doc and mark_pending:
+            self.put_document(doc.evolve(chunk_count=0))
+
+    def put_document(self, doc: DocumentRecord) -> None:
+        self._documents[doc.doc_id] = doc
+
     def source_file(self, doc_id: str) -> Path:
         return self.sources_dir / f"{doc_id}.txt"
 
@@ -297,14 +314,15 @@ class LocalVectorStore:
                 continue
             meta = dict(doc.metadata or {})
             meta.setdefault("source_path", str(dest))
-            self._documents[doc_id] = DocumentRecord(
-                doc_id=doc.doc_id,
-                title=doc.title,
-                filename=doc.filename,
-                chunk_count=doc.chunk_count,
-                created_at=doc.created_at,
-                metadata=meta,
-            )
+            self.put_document(doc.evolve(metadata=meta))
+
+    def archive_pending_sources(self) -> bool:
+        """Archive chunk text if present. Returns True when anything was archived."""
+        if not self.has_vectors():
+            return False
+        self.archive_sources_from_chunks()
+        self._persist()
+        return True
 
     def add_document(
         self,

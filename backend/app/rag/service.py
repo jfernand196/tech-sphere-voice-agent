@@ -122,21 +122,19 @@ class KnowledgeService:
             return len(chunk.embedding) != self.embedder.dim
         return True
 
+    def _pending_docs(self) -> list[DocumentRecord]:
+        return [d for d in self.store.list_documents() if self._doc_needs_rebuild(d)]
+
     def rebuild_stale_embeddings(self) -> int:
         """Re-embed docs from path/snapshot; resume-safe across restarts."""
-        pending = [d for d in self.store.list_documents() if self._doc_needs_rebuild(d)]
+        pending = self._pending_docs()
         if not self.store.needs_reembed and not pending:
             return 0
 
-        # Safety net if wipe left chunks that still need archiving.
-        if self.store._chunks:
-            self.store.archive_sources_from_chunks()
-            self.store._persist()
+        self.store.archive_pending_sources()
 
         rebuilt = 0
-        for doc in list(self.store.list_documents()):
-            if not self._doc_needs_rebuild(doc):
-                continue
+        for doc in pending:
             text = self.resolve_source_text(doc)
             if not text:
                 print(
@@ -156,9 +154,7 @@ class KnowledgeService:
             )
             rebuilt += 1
 
-        still_pending = [
-            d for d in self.store.list_documents() if self._doc_needs_rebuild(d)
-        ]
+        still_pending = self._pending_docs()
         self.store.needs_reembed = bool(still_pending)
         if still_pending:
             print(
