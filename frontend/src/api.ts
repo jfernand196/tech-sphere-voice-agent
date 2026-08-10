@@ -16,14 +16,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export type HealthStatus = {
+  status: string;
+  model_id: string;
+  llm_provider: string;
+  llm_ready?: boolean;
+  llm_detail?: string;
+  health_detail?: string;
+  rag_ok?: boolean;
+  rag_docs?: number;
+  rag_chunks?: number;
+};
+
 export function getHealth() {
-  return request<{
-    status: string;
-    model_id: string;
-    llm_provider: string;
-    llm_ready?: boolean;
-    llm_detail?: string;
-  }>("/health");
+  return request<HealthStatus>("/health");
 }
 
 export function startCall(

@@ -1,4 +1,4 @@
-.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq verify warm-embed warm-kokoro warm-piper
+.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq smoke-app verify warm-embed warm-kokoro warm-piper
 
 # Kokoro/Piper TTS need Python ≥3.10 (onnxruntime≥1.20). Prefer 3.12 when present.
 PYTHON ?= $(shell command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3)
@@ -29,9 +29,13 @@ backend:
 frontend:
 	cd frontend && npm run dev
 
-# Cold-start check: API up + allowed LLM ready (run after make backend).
+# Cold-start check: API up + allowed LLM ready + RAG index non-empty (run after make backend).
 verify:
-	@curl -sf http://127.0.0.1:8001/health | python3 -c 'import sys,json; d=json.load(sys.stdin); ready=bool(d.get("llm_ready")); print("status=%s llm_ready=%s llm_provider=%s model_id=%s" % (d.get("status"), str(ready).lower(), d.get("llm_provider"), d.get("model_id"))); sys.exit(0 if ready else 1)'
+	@curl -sf http://127.0.0.1:8001/health | python3 -c 'import sys,json; d=json.load(sys.stdin); ready=bool(d.get("llm_ready")); rag=bool(d.get("rag_ok")); print("status=%s llm_ready=%s rag_ok=%s docs=%s chunks=%s llm=%s/%s" % (d.get("status"), str(ready).lower(), str(rag).lower(), d.get("rag_docs"), d.get("rag_chunks"), d.get("llm_provider"), d.get("model_id"))); sys.exit(0 if ready and rag else 1)'
+
+# Broader live smoke (health, RAG synonyms, voice caps, call turn). Requires make backend.
+smoke-app:
+	cd backend && . .venv/bin/activate && PYTHONPATH=. python scripts/smoke_app.py
 
 # Official artifacts: https://github.com/TechSphere2026/ParticipantArtifacts
 kit-clone:

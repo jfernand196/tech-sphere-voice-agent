@@ -246,6 +246,18 @@ class LocalVectorStore:
         )
         self._write_meta()
 
+    def index_stats(self) -> dict:
+        """Operational snapshot for /health (docs without vectors = broken RAG)."""
+        docs = len(self._documents)
+        chunks = len(self._chunks)
+        return {
+            "rag_docs": docs,
+            "rag_chunks": chunks,
+            "rag_embedder": self.embedder.name,
+            "rag_needs_reembed": self.needs_reembed,
+            "rag_ok": not (docs > 0 and chunks == 0),
+        }
+
     def list_documents(self) -> List[DocumentRecord]:
         return sorted(self._documents.values(), key=lambda d: d.created_at, reverse=True)
 

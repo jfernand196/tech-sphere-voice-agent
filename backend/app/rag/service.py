@@ -28,6 +28,9 @@ class KnowledgeService:
     def needs_reembed(self) -> bool:
         return self.store.needs_reembed
 
+    def index_stats(self) -> dict:
+        return self.store.index_stats()
+
     def list_documents(self) -> list[DocumentInfo]:
         return [self._to_info(d) for d in self.store.list_documents()]
 
