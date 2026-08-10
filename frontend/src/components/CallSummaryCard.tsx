@@ -6,10 +6,10 @@ import {
 } from "../callFormat";
 import { severityText } from "../clinicalFormat";
 import { useLocale } from "../i18n/LocaleContext";
-import { displayDocTitle } from "../knowledgeFormat";
 import type { CallSummary } from "../types";
 import ChipRow from "./ChipRow";
 import Disclosure from "./Disclosure";
+import SourceChipRow from "./SourceChipRow";
 
 type Props = {
   summary: CallSummary;
@@ -105,23 +105,6 @@ function ChallengeMetrics({ summary }: { summary: CallSummary }) {
   );
 }
 
-function SourceChips({
-  sources,
-}: {
-  sources: CallSummary["sources_used"];
-}) {
-  return (
-    <ChipRow
-      items={sources.map((s) => ({
-        key: s.chunk_id,
-        label: displayDocTitle(s.title, 42),
-        title: s.title,
-        className: "chip chip--source",
-      }))}
-    />
-  );
-}
-
 export default function CallSummaryCard({ summary, onNewCall }: Props) {
   const { t } = useLocale();
   const [showRaw, setShowRaw] = useState(false);
@@ -180,7 +163,7 @@ export default function CallSummaryCard({ summary, onNewCall }: Props) {
           <dt>{t("summary.sources")}</dt>
           <dd>
             {summary.sources_used.length ? (
-              <SourceChips sources={summary.sources_used} />
+              <SourceChipRow sources={summary.sources_used} />
             ) : (
               t("summary.noSources")
             )}

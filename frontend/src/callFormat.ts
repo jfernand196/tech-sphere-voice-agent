@@ -1,5 +1,7 @@
 import type { AgentTurnResponse, CallSummary, ChatItem } from "./types";
 
+export type TurnMetricBit = { title: string; text: string };
+
 /** Map API turn (+ optional E2E ms) → chat bubble — single mapping site. */
 export function agentChatItemFromTurn(
   turn: AgentTurnResponse,
@@ -21,6 +23,33 @@ export function agentChatItemFromTurn(
 
 export function formatPairMs(p50?: number | null, p95?: number | null): string {
   return `${p50 ?? "—"}/${p95 ?? "—"} ms`;
+}
+
+/** Pure challenge turn metrics for bubble footers (no React). */
+export function turnMetricBits(
+  message: Pick<
+    ChatItem,
+    "e2e_latency_ms" | "latency_ms" | "tokens_in" | "tokens_out"
+  >,
+  labels: { e2e: string; api: string; tok: string },
+): TurnMetricBit[] {
+  const bits: TurnMetricBit[] = [];
+  if (typeof message.e2e_latency_ms === "number") {
+    bits.push({ title: labels.e2e, text: `e2e ${message.e2e_latency_ms}` });
+  }
+  if (typeof message.latency_ms === "number") {
+    bits.push({ title: labels.api, text: `api ${message.latency_ms}` });
+  }
+  if (
+    typeof message.tokens_in === "number" &&
+    typeof message.tokens_out === "number"
+  ) {
+    bits.push({
+      title: labels.tok,
+      text: `tok ${message.tokens_in}/${message.tokens_out}`,
+    });
+  }
+  return bits;
 }
 
 /** Trim + case-insensitive dedupe; keeps first spelling for display. */

@@ -1,39 +1,46 @@
+import { turnMetricBits } from "../callFormat";
 import { severityChip } from "../clinicalFormat";
 import { useLocale } from "../i18n/LocaleContext";
-import { displayDocTitle } from "../knowledgeFormat";
+import { truncateEllipsis } from "../textFormat";
 import type { ChatItem } from "../types";
-import ChipRow from "./ChipRow";
+import SourceChipRow from "./SourceChipRow";
 
 type Props = {
   message: ChatItem;
 };
 
-function MetaBits({ message }: { message: ChatItem }) {
+const ALERT_REASON_MAX = 90;
+
+function TurnMetrics({ message }: { message: ChatItem }) {
   const { t } = useLocale();
-  const bits: { title: string; text: string }[] = [];
-  if (typeof message.e2e_latency_ms === "number") {
-    bits.push({
-      title: t("chat.e2eTitle"),
-      text: `e2e ${message.e2e_latency_ms} ms`,
-    });
-  }
-  if (typeof message.latency_ms === "number") {
-    bits.push({ title: t("chat.apiTitle"), text: `api ${message.latency_ms} ms` });
-  }
-  if (typeof message.tokens_in === "number" && typeof message.tokens_out === "number") {
-    bits.push({
-      title: t("chat.tokTitle"),
-      text: `tok ${message.tokens_in}/${message.tokens_out}`,
-    });
-  }
+  const bits = turnMetricBits(message, {
+    e2e: t("chat.e2eTitle"),
+    api: t("chat.apiTitle"),
+    tok: t("chat.tokTitle"),
+  });
+  if (bits.length === 0) return null;
+
   return (
-    <>
-      {bits.map((b) => (
-        <small key={b.text} title={b.title}>
+    <p className="bubble__metrics" aria-label={t("chat.metricsAria")}>
+      {bits.map((b, i) => (
+        <span key={b.text} title={b.title}>
+          {i > 0 ? " · " : null}
           {b.text}
-        </small>
+        </span>
       ))}
-    </>
+    </p>
+  );
+}
+
+function EscalateAlert({ reason }: { reason: string }) {
+  const { t } = useLocale();
+  return (
+    <div className="alert" title={reason}>
+      <span className="alert__label">{t("chat.escalateLabel")}</span>
+      <span className="alert__reason">
+        {truncateEllipsis(reason, ALERT_REASON_MAX)}
+      </span>
+    </div>
   );
 }
 
@@ -47,29 +54,22 @@ export default function ChatMessage({ message }: Props) {
       <header className="bubble__meta">
         <strong>{isAgent ? t("chat.agent") : t("chat.patient")}</strong>
         {severity ? (
-          <span className={`sev-chip sev-chip--${message.patient_state?.severity}`}>
+          <span
+            className={`sev-chip sev-chip--${message.patient_state?.severity}`}
+          >
             {severity}
           </span>
         ) : null}
-        {isAgent ? <MetaBits message={message} /> : null}
       </header>
       <p>{message.content}</p>
+      {isAgent ? <TurnMetrics message={message} /> : null}
       {message.escalate ? (
-        <div className="alert">
-          {t("chat.escalate", {
-            reason: message.escalate_reason || t("chat.escalateFallback"),
-          })}
-        </div>
-      ) : null}
-      {message.sources && message.sources.length > 0 ? (
-        <ChipRow
-          items={message.sources.map((s) => ({
-            key: s.chunk_id,
-            label: displayDocTitle(s.title, 42),
-            title: s.excerpt ? `${s.title}\n\n${s.excerpt}` : s.title,
-            className: "chip chip--source",
-          }))}
+        <EscalateAlert
+          reason={message.escalate_reason || t("chat.escalateFallback")}
         />
+      ) : null}
+      {message.sources?.length ? (
+        <SourceChipRow sources={message.sources} withExcerpt />
       ) : null}
     </article>
   );

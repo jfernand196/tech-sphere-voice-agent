@@ -34,8 +34,8 @@ export function useCallSession({ onAgentReply }: Options = {}) {
   }
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, listening, busy]);
 
   useEffect(() => {
     void listDemoPatients()

@@ -1,4 +1,5 @@
 import type { MessageKey } from "./i18n";
+import { truncateEllipsis } from "./textFormat";
 import type { DocumentInfo } from "./types";
 
 export type DocGroup = "uploaded" | "kit" | "seed";
@@ -14,9 +15,7 @@ export function docGroup(doc: DocumentInfo): DocGroup {
 
 /** Short title for list rows (strip scenario prefix / trim). */
 export function displayDocTitle(title: string, max = 72): string {
-  let text = title.replace(/^\[[^\]]+\]\s*/, "").trim();
-  if (text.length <= max) return text;
-  return `${text.slice(0, max - 1).trimEnd()}…`;
+  return truncateEllipsis(title.replace(/^\[[^\]]+\]\s*/, ""), max);
 }
 
 export function groupLabel(group: DocGroup, t: TFn): string {
