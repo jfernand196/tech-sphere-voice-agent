@@ -104,6 +104,7 @@ function Controls({
         className={
           voiceOut ? "voice-bar__tune" : "voice-bar__tune voice-bar__tune--dimmed"
         }
+        aria-disabled={!voiceOut}
       >
         {showEngineSelect ? (
           <label className="voice-select">
@@ -111,6 +112,7 @@ function Controls({
             <select
               value={ttsEngine}
               aria-label={t("voice.engineAria")}
+              disabled={!voiceOut}
               onChange={(e) => onTtsEngineChange(e.target.value as TtsEngine)}
             >
               <option value="browser">{t("voice.engineBrowser")}</option>
@@ -129,7 +131,7 @@ function Controls({
           <select
             value={voiceName}
             aria-label={t("voice.selectAria")}
-            disabled={!speechSupported || voices.length === 0}
+            disabled={!voiceOut || !speechSupported || voices.length === 0}
             onChange={(e) => onVoiceNameChange(e.target.value)}
           >
             {voices.length === 0 ? (
