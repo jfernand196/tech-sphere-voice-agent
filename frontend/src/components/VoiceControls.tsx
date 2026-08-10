@@ -4,8 +4,6 @@ import type { VoiceOption } from "../speech";
 import Disclosure from "./Disclosure";
 
 type Props = {
-  voiceOut: boolean;
-  onVoiceOutChange: (value: boolean) => void;
   voices: VoiceOption[];
   voiceName: string;
   onVoiceNameChange: (value: string) => void;
@@ -69,8 +67,6 @@ function engineShortLabel(
 }
 
 function Controls({
-  voiceOut,
-  onVoiceOutChange,
   voices,
   voiceName,
   onVoiceNameChange,
@@ -85,70 +81,49 @@ function Controls({
   const showEngineSelect = kokoroReady || piperReady;
   return (
     <div className="voice-bar">
-      <label className="voice-switch">
-        <input
-          type="checkbox"
-          role="switch"
-          checked={voiceOut}
-          aria-label={t("voice.agentVoiceAria")}
-          onChange={(e) => onVoiceOutChange(e.target.checked)}
-          disabled={!speechSupported}
-        />
-        <span className="voice-switch__track" aria-hidden="true">
-          <span className="voice-switch__thumb" />
-        </span>
-        <span className="voice-switch__label">{t("voice.agentVoice")}</span>
-      </label>
-
-      <div
-        className={
-          voiceOut ? "voice-bar__tune" : "voice-bar__tune voice-bar__tune--dimmed"
-        }
-      >
-        {showEngineSelect ? (
-          <label className="voice-select">
-            <span className="voice-select__label">{t("voice.engineLabel")}</span>
-            <select
-              value={ttsEngine}
-              aria-label={t("voice.engineAria")}
-              onChange={(e) => onTtsEngineChange(e.target.value as TtsEngine)}
-            >
-              <option value="browser">{t("voice.engineBrowser")}</option>
-              {kokoroReady ? (
-                <option value="kokoro">{t("voice.engineKokoro")}</option>
-              ) : null}
-              {piperReady ? (
-                <option value="piper">{t("voice.enginePiper")}</option>
-              ) : null}
-            </select>
-          </label>
-        ) : null}
-
+      {showEngineSelect ? (
         <label className="voice-select">
-          <span className="voice-select__label">{t("voice.voiceLabel")}</span>
+          <span className="voice-select__label">{t("voice.engineLabel")}</span>
           <select
-            value={voiceName}
-            aria-label={t("voice.selectAria")}
-            disabled={!speechSupported || voices.length === 0}
-            onChange={(e) => onVoiceNameChange(e.target.value)}
+            value={ttsEngine}
+            aria-label={t("voice.engineAria")}
+            onChange={(e) => onTtsEngineChange(e.target.value as TtsEngine)}
           >
-            {voices.length === 0 ? (
-              <option value="">{t("voice.loading")}</option>
-            ) : (
-              voices.map((v) => (
-                <option key={`${v.name}-${v.lang}`} value={v.name}>
-                  {v.label}
-                </option>
-              ))
-            )}
+            <option value="browser">{t("voice.engineBrowser")}</option>
+            {kokoroReady ? (
+              <option value="kokoro">{t("voice.engineKokoro")}</option>
+            ) : null}
+            {piperReady ? (
+              <option value="piper">{t("voice.enginePiper")}</option>
+            ) : null}
           </select>
         </label>
-      </div>
+      ) : null}
+
+      <label className="voice-select">
+        <span className="voice-select__label">{t("voice.voiceLabel")}</span>
+        <select
+          value={voiceName}
+          aria-label={t("voice.selectAria")}
+          disabled={!speechSupported || voices.length === 0}
+          onChange={(e) => onVoiceNameChange(e.target.value)}
+        >
+          {voices.length === 0 ? (
+            <option value="">{t("voice.loading")}</option>
+          ) : (
+            voices.map((v) => (
+              <option key={`${v.name}-${v.lang}`} value={v.name}>
+                {v.label}
+              </option>
+            ))
+          )}
+        </select>
+      </label>
 
       <button
         type="button"
         className="secondary"
-        disabled={!voiceOut || !voiceName}
+        disabled={!voiceName}
         onClick={onPreview}
       >
         {t("voice.preview")}
@@ -159,18 +134,10 @@ function Controls({
 
 export default function VoiceControls(props: Props) {
   const { t } = useLocale();
-  const {
-    collapsed,
-    voiceOut,
-    voiceName,
-    voices,
-    ttsEngine,
-    ...rest
-  } = props;
+  const { collapsed, voiceName, voices, ttsEngine, ...rest } = props;
   if (!collapsed) {
     return (
       <Controls
-        voiceOut={voiceOut}
         voiceName={voiceName}
         voices={voices}
         ttsEngine={ttsEngine}
@@ -186,9 +153,7 @@ export default function VoiceControls(props: Props) {
     ttsEngine,
   );
   const engineLabel = engineShortLabel(ttsEngine, t);
-  const status = voiceOut
-    ? t("voice.summaryOnEngine", { engine: engineLabel, name })
-    : t("voice.summaryOffEngine", { engine: engineLabel, name });
+  const status = t("voice.summaryEngine", { engine: engineLabel, name });
 
   return (
     <Disclosure
@@ -197,7 +162,6 @@ export default function VoiceControls(props: Props) {
       title={status}
     >
       <Controls
-        voiceOut={voiceOut}
         voiceName={voiceName}
         voices={voices}
         ttsEngine={ttsEngine}

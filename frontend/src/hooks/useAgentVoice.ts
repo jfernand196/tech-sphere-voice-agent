@@ -29,7 +29,6 @@ function isServerEngine(engine: TtsEngine): engine is ServerTtsEngine {
 }
 
 export function useAgentVoice() {
-  const [voiceOut, setVoiceOut] = useState(true);
   const [voices, setVoices] = useState<VoiceOption[]>([]);
   const [ttsEngine, setTtsEngine] = useState<TtsEngine>("browser");
   const [kokoroReady, setKokoroReady] = useState(false);
@@ -94,7 +93,6 @@ export function useAgentVoice() {
     text: string,
     speechEndedAt?: number,
   ): Promise<number | undefined> {
-    if (!voiceOut) return undefined;
     if (ttsEngine === "browser" && !canUseSpeechSynthesis()) return undefined;
     let e2e: number | undefined;
     await speak(text, {
@@ -114,14 +112,7 @@ export function useAgentVoice() {
     stopSpeaking();
   }
 
-  function setVoiceOutAndMaybeStop(value: boolean) {
-    setVoiceOut(value);
-    if (!value) stopSpeaking();
-  }
-
   return {
-    voiceOut,
-    setVoiceOut: setVoiceOutAndMaybeStop,
     voices,
     voiceName,
     selectVoice,
