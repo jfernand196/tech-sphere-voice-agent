@@ -11,10 +11,13 @@ venv/
 # Data / runtime
 backend/data/uploads/*
 backend/data/vector_store/*
+backend/data/kokoro/*
 !backend/data/uploads/.gitkeep
 !backend/data/vector_store/.gitkeep
+!backend/data/kokoro/.gitkeep
 backend/data/calls.json
 backend/data/documents.json
+backend/.venv-py39.bak/
 
 # Official challenge kit (~127MB dataset+PDFs). Clone locally; do not commit.
 # make kit-clone  →  ./official-kit

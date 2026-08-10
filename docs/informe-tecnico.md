@@ -43,7 +43,7 @@ Ver diagrama completo en [`ARCHITECTURE.md`](../ARCHITECTURE.md). Resumen:
 | Pieza | Decisión | Dónde |
 |---|---|---|
 | Orquestación | FastAPI use-cases + ports/adapters | `backend/app/agent/`, `ports.py` |
-| Voz | Web Speech API en el browser (STT + TTS) | `frontend/src/speech.ts` |
+| Voz | Web Speech STT + Kokoro ONNX TTS (fallback browser) | `frontend/src/speech.ts`, `kokoroTts.ts`, `backend/app/voice/` |
 | RAG | Store local hybrid (MiniLM 384-d cosine + BM25 → RRF), upload/delete, PDF | `backend/app/rag/store.py`, `embeddings.py` |
 | Escalate | Prompt + **guardrails post-LLM** (autoritativos) | `prompts.py` + `safety.py` |
 | Persistencia de llamadas | JSON en `DATA_DIR` | `backend/app/calls/` |
@@ -198,7 +198,7 @@ El historial de commits en GitHub refleja el trabajo incremental (PRs de adapter
 | Alucinación clínica | Prompt “solo RAG” + hybrid MiniLM+BM25 | Chroma / BGE-M3 si el corpus crece mucho |
 | Falso negativo escalate | Guardrails post-LLM + eval rojo | Más casos capa2 ruidosa; umbrales por procedimiento |
 | Rate limit Groq free | Reintentos en eval; demo corta | Cola / Gemini fallback automático |
-| Voz solo browser | Documentado; Chrome/Edge | Piper/Kokoro o Whisper server-side |
+| Calidad TTS | Kokoro int8 ES (`ef_dora`) vía `/voice/tts`; fallback browser | Streaming TTS / Whisper STT server-side |
 | Tokens no agregados en README | `latency_ms` sí; usage Groq pendiente | Rollup tokens in/out por turno en logs |
 
 ---

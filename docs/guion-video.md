@@ -42,7 +42,7 @@ UI: http://127.0.0.1:5173 · API: http://127.0.0.1:8001
 
 **Decir:**
 
-> El paciente habla; el agente responde en español con Web Speech. El razonamiento lo hace Llama en Groq; la voz es del navegador.
+> El paciente habla (Web Speech STT); el agente responde en español con Kokoro TTS. El razonamiento lo hace Llama en Groq.
 
 ### Bloque B — RAG + citas (≈45–60 s)
 
@@ -120,7 +120,7 @@ Mira a cámara. Puedes tener este texto en un segundo monitor, pero **no leas co
 >
 > Alternativas que evalué: (1) solo prompt —más simple, pero arriesgado en falso negativo; (2) solo reglas —rígido y pobre en conversación; (3) Gemini Flash como default —mejor contexto largo, pero prioricé **latencia de voz** con Groq Llama 3.3 70B. Anthropic ni se consideró: descalifica.
 >
-> Riesgos: rate limits del free tier; embeddings locales MiniLM vía fastembed (no BGE-M3/Chroma); voz solo browser. Con dos semanas más: Chroma + modelo más grande, rollup de tokens en logs, y TTS/STT más robusto (Whisper/Piper) sin perder el cold start de 15 minutos.
+> Riesgos: rate limits del free tier; embeddings MiniLM vía fastembed; TTS Kokoro int8 local (fallback browser). Con dos semanas más: Chroma + Whisper STT + streaming TTS sin perder el cold start de 15 minutos.
 
 *(Alternativa si prefieres hablar del modelo: misma estructura — por qué Groq Llama vs Gemini vs local.)*
 

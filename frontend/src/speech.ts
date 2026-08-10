@@ -194,12 +194,13 @@ type SpeakOptions = {
 
 export function stopSpeaking(): void {
   speakToken += 1;
+  void import("./kokoroTts").then((m) => m.stopKokoroAudio());
   if (canUseSpeechSynthesis()) {
     window.speechSynthesis.cancel();
   }
 }
 
-export async function speak(text: string, options: SpeakOptions = {}): Promise<void> {
+async function speakBrowser(text: string, options: SpeakOptions = {}): Promise<void> {
   if (!canUseSpeechSynthesis() || !text.trim()) return;
 
   const lang = options.lang ?? "es-CO";
@@ -230,6 +231,31 @@ export async function speak(text: string, options: SpeakOptions = {}): Promise<v
       }
     });
   return speakChain;
+}
+
+export async function speak(text: string, options: SpeakOptions = {}): Promise<void> {
+  if (!text.trim()) return;
+
+  const { getCachedTtsMode, speakWithKokoro, loadTtsCapabilities } = await import(
+    "./kokoroTts"
+  );
+  await loadTtsCapabilities();
+
+  if (getCachedTtsMode() === "kokoro") {
+    const myToken = ++speakToken;
+    try {
+      await speakWithKokoro(text, {
+        voiceName: options.voiceName,
+        onStart: options.onStart,
+      });
+      return;
+    } catch (err) {
+      console.warn("Kokoro TTS failed; falling back to browser speechSynthesis", err);
+      if (myToken !== speakToken) return;
+    }
+  }
+
+  return speakBrowser(text, options);
 }
 
 export type ListenResult = {

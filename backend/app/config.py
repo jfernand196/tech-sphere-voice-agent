@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     # RAG embeddings: fastembed (MiniLM multilingual, default) | hash (offline / rollback)
     embed_provider: str = "fastembed"
 
+    # TTS: auto (Kokoro if models present) | kokoro | browser
+    tts_provider: str = "auto"
+    kokoro_voice: str = "ef_dora"
+    kokoro_speed: float = 1.0
+    kokoro_model_filename: str = "kokoro-v1.0.int8.onnx"
+    kokoro_voices_filename: str = "voices-v1.0.bin"
+
     cors_origins: str = "http://localhost:5173"
 
     data_dir: Path = _BACKEND_ROOT / "data"
@@ -47,6 +54,18 @@ class Settings(BaseSettings):
         return self.data_dir / "calls.json"
 
     @property
+    def kokoro_dir(self) -> Path:
+        return self.data_dir / "kokoro"
+
+    @property
+    def kokoro_model_path(self) -> Path:
+        return self.kokoro_dir / self.kokoro_model_filename
+
+    @property
+    def kokoro_voices_path(self) -> Path:
+        return self.kokoro_dir / self.kokoro_voices_filename
+
+    @property
     def origins_list(self) -> List[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
@@ -57,4 +76,5 @@ def get_settings() -> Settings:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.uploads_dir.mkdir(parents=True, exist_ok=True)
     settings.vector_store_dir.mkdir(parents=True, exist_ok=True)
+    settings.kokoro_dir.mkdir(parents=True, exist_ok=True)
     return settings

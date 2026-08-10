@@ -1,14 +1,22 @@
-.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq verify warm-embed
+.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq verify warm-embed warm-kokoro
+
+# Kokoro TTS needs Python ≥3.10 (onnxruntime≥1.20). Prefer 3.12 when present.
+PYTHON ?= $(shell command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3)
 
 setup:
-	cd backend && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+	cd backend && $(PYTHON) -m venv .venv && . .venv/bin/activate && pip install -U pip && pip install -r requirements.txt
 	cd frontend && npm install
 	cp -n .env.example backend/.env || true
 	$(MAKE) warm-embed
+	$(MAKE) warm-kokoro
 
 # Pre-download ONNX MiniLM (~220 MB) so cold-start clock doesn't pay the first-embed download.
 warm-embed: ## Pre-download embedding model
 	cd backend && . .venv/bin/activate && PYTHONPATH=. python -c "from app.rag.embeddings import FastembedEmbedder; FastembedEmbedder().warmup(); print('warm-embed OK')"
+
+# Download Kokoro int8 (~88 MB) + voices (~27 MB) and warm ONNX.
+warm-kokoro: ## Pre-download Kokoro TTS model
+	cd backend && . .venv/bin/activate && PYTHONPATH=. python scripts/warm_kokoro.py
 
 backend:
 	cd backend && . .venv/bin/activate && PYTHONPATH=. uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
