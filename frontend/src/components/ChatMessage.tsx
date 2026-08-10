@@ -1,17 +1,26 @@
-import { turnMetricBits } from "../callFormat";
+import { hasTurnMetrics, turnMetricBits } from "../callFormat";
 import { severityChip } from "../clinicalFormat";
 import { useLocale } from "../i18n/LocaleContext";
 import { truncateEllipsis } from "../textFormat";
 import type { ChatItem } from "../types";
+import MetricsHint from "./MetricsHint";
 import SourceChipRow from "./SourceChipRow";
 
 type Props = {
   message: ChatItem;
+  /** Only the latest metered agent bubble shows the legend control. */
+  showMetricsHint?: boolean;
 };
 
 const ALERT_REASON_MAX = 90;
 
-function TurnMetrics({ message }: { message: ChatItem }) {
+function TurnMetrics({
+  message,
+  showHint,
+}: {
+  message: ChatItem;
+  showHint: boolean;
+}) {
   const { t } = useLocale();
   const bits = turnMetricBits(message, {
     e2e: t("chat.e2eTitle"),
@@ -21,14 +30,19 @@ function TurnMetrics({ message }: { message: ChatItem }) {
   if (bits.length === 0) return null;
 
   return (
-    <p className="bubble__metrics" aria-label={t("chat.metricsAria")}>
-      {bits.map((b, i) => (
-        <span key={b.text} title={b.title}>
-          {i > 0 ? " · " : null}
-          {b.text}
-        </span>
-      ))}
-    </p>
+    <div className="bubble__metrics-block">
+      <div className="bubble__metrics-row">
+        <p className="bubble__metrics" aria-label={t("chat.metricsAria")}>
+          {bits.map((b, i) => (
+            <span key={b.text} title={b.title}>
+              {i > 0 ? " · " : null}
+              {b.text}
+            </span>
+          ))}
+        </p>
+        {showHint ? <MetricsHint variant="turn" /> : null}
+      </div>
+    </div>
   );
 }
 
@@ -44,7 +58,10 @@ function EscalateAlert({ reason }: { reason: string }) {
   );
 }
 
-export default function ChatMessage({ message }: Props) {
+export default function ChatMessage({
+  message,
+  showMetricsHint = false,
+}: Props) {
   const { t } = useLocale();
   const isAgent = message.role === "agent";
   const severity = severityChip(message.patient_state?.severity, t);
@@ -62,7 +79,9 @@ export default function ChatMessage({ message }: Props) {
         ) : null}
       </header>
       <p>{message.content}</p>
-      {isAgent ? <TurnMetrics message={message} /> : null}
+      {isAgent && hasTurnMetrics(message) ? (
+        <TurnMetrics message={message} showHint={showMetricsHint} />
+      ) : null}
       {message.escalate ? (
         <EscalateAlert
           reason={message.escalate_reason || t("chat.escalateFallback")}

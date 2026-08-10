@@ -43,6 +43,13 @@ export const en: Record<MessageKey, string> = {
   "call.listening": "Listening…",
   "call.listeningHint": "Speak now. The microphone is on.",
   "call.listeningPlaceholder": "Listening to your voice…",
+  "call.metricsHintTitle": "What e2e · api · tok mean",
+  "call.metricsHintE2e":
+    "Speech→speech: from when you finish speaking until the agent audio starts (official challenge metric).",
+  "call.metricsHintApi":
+    "Backend only: RAG + model + safety time (no mic or TTS).",
+  "call.metricsHintTok":
+    "Model input / output tokens for that turn.",
   "call.errorStart": "Could not start the call",
   "call.errorTurn": "Turn error",
   "call.errorMic": "Microphone error",
@@ -87,6 +94,16 @@ export const en: Record<MessageKey, string> = {
   "summary.turns": "Turns",
   "summary.metricsKicker": "Challenge",
   "summary.metricsTitle": "Challenge metrics",
+  "summary.metricsHintTitle": "What these metrics mean",
+  "summary.metricsHintTok":
+    "Total input / output tokens for the whole call (sum of turns).",
+  "summary.metricsHintPercentiles":
+    "P50 = median; P95 = near worst case. Computed across turns in the call.",
+  "summary.metricsHintLlmRag":
+    "Model invocations and knowledge (RAG) queries for the call.",
+  "summary.metricsHintCost":
+    "Estimated cost at production list prices (challenge free tier ≈ $0).",
+  "summary.metricsTermCost": "cost",
   "summary.tokens": "Tokens (in/out)",
   "summary.llmRag": "LLM / RAG",
   "summary.llmRagValue": "{inv} calls · {rag} RAG",

@@ -118,10 +118,11 @@ export function useCallSession({ onAgentReply }: Options = {}) {
     setError(null);
     try {
       const { transcript, endedAt } = await listenOnce("es-CO");
+      // Drop listening UI as soon as STT ends — not during agent TTS.
+      setListening(false);
       if (transcript) await send(transcript, endedAt);
     } catch (e) {
       setError(errMessage(e, t("call.errorMic")));
-    } finally {
       setListening(false);
     }
   }

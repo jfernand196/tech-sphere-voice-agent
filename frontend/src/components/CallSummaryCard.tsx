@@ -9,6 +9,7 @@ import { useLocale } from "../i18n/LocaleContext";
 import type { CallSummary } from "../types";
 import ChipRow from "./ChipRow";
 import Disclosure from "./Disclosure";
+import MetricsHint from "./MetricsHint";
 import SourceChipRow from "./SourceChipRow";
 
 type Props = {
@@ -101,6 +102,7 @@ function ChallengeMetrics({ summary }: { summary: CallSummary }) {
           </div>
         ) : null}
       </dl>
+      <MetricsHint variant="summary" />
     </Disclosure>
   );
 }

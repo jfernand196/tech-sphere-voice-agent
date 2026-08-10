@@ -25,12 +25,23 @@ export function formatPairMs(p50?: number | null, p95?: number | null): string {
   return `${p50 ?? "—"}/${p95 ?? "—"} ms`;
 }
 
+type TurnMetricsSource = Pick<
+  ChatItem,
+  "e2e_latency_ms" | "latency_ms" | "tokens_in" | "tokens_out"
+>;
+
+export function hasTurnMetrics(message: TurnMetricsSource): boolean {
+  return (
+    typeof message.e2e_latency_ms === "number" ||
+    typeof message.latency_ms === "number" ||
+    (typeof message.tokens_in === "number" &&
+      typeof message.tokens_out === "number")
+  );
+}
+
 /** Pure challenge turn metrics for bubble footers (no React). */
 export function turnMetricBits(
-  message: Pick<
-    ChatItem,
-    "e2e_latency_ms" | "latency_ms" | "tokens_in" | "tokens_out"
-  >,
+  message: TurnMetricsSource,
   labels: { e2e: string; api: string; tok: string },
 ): TurnMetricBit[] {
   const bits: TurnMetricBit[] = [];
@@ -50,6 +61,15 @@ export function turnMetricBits(
     });
   }
   return bits;
+}
+
+/** Index of the latest agent bubble that carries challenge turn metrics. */
+export function lastTurnMetricsIndex(messages: ChatItem[]): number {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const m = messages[i];
+    if (m?.role === "agent" && hasTurnMetrics(m)) return i;
+  }
+  return -1;
 }
 
 /** Trim + case-insensitive dedupe; keeps first spelling for display. */
