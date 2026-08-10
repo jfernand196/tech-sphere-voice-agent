@@ -28,7 +28,7 @@ La solución se levanta en **≤15 minutos** siguiendo únicamente el README (`m
 
 ### Por qué lo elegimos
 
-1. **Latencia para voz.** En un agente conversacional, el cuello de botella percibido es el tiempo hasta la respuesta hablada. Groq + Llama 70B en free tier entrega turnos de agente en torno a **P50 ≈ 1.5 s / P95 ≈ 2.2 s** en nuestra muestra de evaluación (`make eval-escalate`, 10 casos).
+1. **Latencia para voz.** En un agente conversacional, el cuello de botella percibido es el tiempo hasta la respuesta hablada. En una llamada de voz real (10 turnos con mic, Web Speech STT+TTS, Groq Llama 70B) medimos **e2e P50/P95 = 1136 / 1427 ms** y **api P50/P95 = 1044 / 1337 ms** (resumen al colgar; ver §8 y README).
 2. **Cumple la lista cerrada del reto.** Familia Llama en Groq está explícitamente permitida; Anthropic/Claude descalifica.
 3. **JSON estable con temperatura baja (0.2)** para el contrato `AgentTurnResponse`.
 4. **Alternativa evaluada y descartada como default:** Gemini Flash — mejor ventana de contexto para RAG largo, pero priorizamos latencia de turno para la demo de voz. Queda cableada (`LLM_PROVIDER=gemini`) por si el corpus crece.
@@ -43,7 +43,7 @@ Ver diagrama completo en [`ARCHITECTURE.md`](../ARCHITECTURE.md). Resumen:
 | Pieza | Decisión | Dónde |
 |---|---|---|
 | Orquestación | FastAPI use-cases + ports/adapters | `backend/app/agent/`, `ports.py` |
-| Voz | Web Speech STT + Kokoro ONNX TTS (fallback browser) | `frontend/src/speech.ts`, `kokoroTts.ts`, `backend/app/voice/` |
+| Voz | Web Speech STT + selector TTS (Web Speech por defecto / Kokoro opt-in) | `frontend/src/speech.ts`, `kokoroTts.ts`, `backend/app/voice/` |
 | RAG | Store local hybrid (MiniLM 384-d cosine + BM25 → RRF), upload/delete, PDF | `backend/app/rag/store.py`, `embeddings.py` |
 | Escalate | Prompt + **guardrails post-LLM** (autoritativos) | `prompts.py` + `safety.py` |
 | Persistencia de llamadas | JSON en `DATA_DIR` | `backend/app/calls/` |
@@ -143,17 +143,22 @@ Al arrancar el backend se siembra un protocolo genérico de alarma (`main.py` �
 
 ## 8. Métricas observadas
 
-Instrumentación: tokens Groq en `llm_groq.py`; E2E voz en frontend (`listenOnce.endedAt` → TTS `onstart`); agregados P50/P95 y costo en `CallSummary` al colgar.
+Instrumentación: tokens Groq en `llm_groq.py`; E2E voz en frontend (`listenOnce.endedAt` → TTS `onstart`); agregados P50/P95 y costo en `CallSummary` al colgar. Los mismos números están en el README (§ Metrics).
+
+**Muestra de voz (10 turnos con mic):** Groq `llama-3.3-70b-versatile` · Web Speech STT + Web Speech TTS · caso día 7 crítico · resumen al colgar.
 
 | Métrica | Valor | Método |
 |---|---|---|
-| Latencia E2E voz P50/P95 | *rellenar tras corrida con mic* | Resumen al colgar |
-| Latencia turno agente P50 | ~1.5 s | `latency_ms`, 10 turnos Groq (`eval-escalate`) |
-| Latencia turno agente P95 | ~2.2 s | Idem |
-| Invocaciones LLM / turno | 1 | Un completion por mensaje |
-| Consultas RAG / turno | 1 | `retrieve` antes del LLM |
-| Tokens in/out | visibles por turno + totales al colgar | `usage` del provider |
-| Costo estimado / llamada | en resumen (`cost_usd_estimate`) | Precios lista Groq Llama 3.3 70B; free tier ≈ $0 |
+| Latencia E2E voz P50 | **1136 ms** | STT final → TTS audio start |
+| Latencia E2E voz P95 | **1427 ms** | Misma llamada |
+| Latencia turno agente P50 | **1044 ms** | Backend RAG + LLM + safety (`api`) |
+| Latencia turno agente P95 | **1337 ms** | Misma llamada |
+| Invocaciones LLM / turno | **1** (10 inv / 10 turnos) | Un completion por mensaje |
+| Consultas RAG / turno | **1** (10 RAG / 10 turnos) | `retrieve` antes del LLM |
+| Tokens in/out (llamada) | **8422 / 2208** | Totales Groq `usage` al colgar |
+| Costo estimado / llamada | **$0.0067 USD** | Precios lista Groq Llama 3.3 70B; free tier ≈ $0 en runtime |
+
+Referencia offline (`make eval-escalate`, 10 casos texto): agent-turn ~1.5 s / ~2.2 s P50/P95 — no sustituye la E2E de voz oficial.
 
 ---
 
@@ -198,8 +203,7 @@ El historial de commits en GitHub refleja el trabajo incremental (PRs de adapter
 | Alucinación clínica | Prompt “solo RAG” + hybrid MiniLM+BM25 | Chroma / BGE-M3 si el corpus crece mucho |
 | Falso negativo escalate | Guardrails post-LLM + eval rojo | Más casos capa2 ruidosa; umbrales por procedimiento |
 | Rate limit Groq free | Reintentos en eval; demo corta | Cola / Gemini fallback automático |
-| Calidad TTS | Kokoro int8 ES (`ef_dora`) vía `/voice/tts`; fallback browser | Streaming TTS / Whisper STT server-side |
-| Tokens no agregados en README | `latency_ms` sí; usage Groq pendiente | Rollup tokens in/out por turno en logs |
+| Calidad vs latencia TTS | Web Speech por defecto (baja latencia); Kokoro opt-in en UI | Streaming TTS / Whisper STT server-side |
 
 ---
 
