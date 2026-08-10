@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { lastTurnMetricsIndex } from "../callFormat";
 import { demoHintBullets, formatCaseLabel } from "../demoFormat";
 import { useAgentVoice } from "../hooks/useAgentVoice";
 import { useCallSession } from "../hooks/useCallSession";
@@ -23,6 +24,7 @@ export default function CallPanel() {
 
   const phase = call.callId ? "live" : call.summary ? "ended" : "setup";
   const [editDetails, setEditDetails] = useState(false);
+  const metricsHintAt = lastTurnMetricsIndex(call.messages);
 
   function resetForNewCall() {
     voice.stopAgent();
@@ -187,7 +189,11 @@ export default function CallPanel() {
 
           <div className="chat" aria-live="polite">
             {call.messages.map((m, idx) => (
-              <ChatMessage key={`${m.role}-${idx}`} message={m} />
+              <ChatMessage
+                key={`${m.role}-${idx}`}
+                message={m}
+                showMetricsHint={idx === metricsHintAt}
+              />
             ))}
             {call.listening ? <ListenBanner /> : null}
             <div ref={call.bottomRef} />

@@ -41,6 +41,13 @@ export const es = {
   "call.listening": "Escuchando…",
   "call.listeningHint": "Habla ahora. El micrófono está activo.",
   "call.listeningPlaceholder": "Escuchando tu voz…",
+  "call.metricsHintTitle": "Qué significan e2e · api · tok",
+  "call.metricsHintE2e":
+    "Voz→voz: desde que terminas de hablar hasta que empieza el audio del agente (métrica oficial del reto).",
+  "call.metricsHintApi":
+    "Solo backend: tiempo de RAG + modelo + reglas de seguridad (sin micrófono ni TTS).",
+  "call.metricsHintTok":
+    "Tokens de entrada / salida del modelo en ese turno.",
   "call.errorStart": "No se pudo iniciar la llamada",
   "call.errorTurn": "Error en el turno",
   "call.errorMic": "Error de micrófono",
@@ -85,6 +92,16 @@ export const es = {
   "summary.turns": "Turnos",
   "summary.metricsKicker": "Reto",
   "summary.metricsTitle": "Métricas del reto",
+  "summary.metricsHintTitle": "Qué significan estas métricas",
+  "summary.metricsHintTok":
+    "Total de tokens de entrada / salida de toda la llamada (suma de turnos).",
+  "summary.metricsHintPercentiles":
+    "P50 = mediana; P95 = casi el peor caso. Se calculan sobre los turnos de la llamada.",
+  "summary.metricsHintLlmRag":
+    "Invocaciones al modelo y consultas al conocimiento (RAG) en la llamada.",
+  "summary.metricsHintCost":
+    "Costo estimado a precios de lista de producción (el free tier del reto ≈ $0).",
+  "summary.metricsTermCost": "costo",
   "summary.tokens": "Tokens (in/out)",
   "summary.llmRag": "LLM / RAG",
   "summary.llmRagValue": "{inv} inv · {rag} RAG",
