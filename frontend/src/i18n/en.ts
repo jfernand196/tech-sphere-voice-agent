@@ -15,6 +15,7 @@ export const en: Record<MessageKey, string> = {
   "app.healthOffline": "offline",
   "app.healthBadBackend": "unexpected backend",
   "app.healthMissingKey": "LLM API key missing",
+  "app.healthRagEmpty": "Empty RAG ({docs} docs / {chunks} chunks)",
   "app.healthTitle": "API status: {label}",
   "locale.aria": "Interface language",
   "locale.es": "ES",

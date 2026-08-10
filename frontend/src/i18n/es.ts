@@ -13,6 +13,7 @@ export const es = {
   "app.healthOffline": "offline",
   "app.healthBadBackend": "backend incorrecto",
   "app.healthMissingKey": "falta API key del LLM",
+  "app.healthRagEmpty": "RAG vacío ({docs} docs / {chunks} chunks)",
   "app.healthTitle": "Estado del API: {label}",
   "locale.aria": "Idioma de la interfaz",
   "locale.es": "ES",

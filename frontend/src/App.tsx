@@ -30,6 +30,16 @@ export default function App() {
           });
           return;
         }
+        if (h.rag_ok === false) {
+          setHealth({
+            label: t("app.healthRagEmpty", {
+              docs: h.rag_docs ?? 0,
+              chunks: h.rag_chunks ?? 0,
+            }),
+            tone: "warn",
+          });
+          return;
+        }
         setHealth({
           label: `${h.llm_provider} · ${h.model_id}`,
           tone: "ok",

@@ -64,6 +64,17 @@ def ensure_vector_index() -> None:
         rebuilt = ks.rebuild_stale_embeddings()
         print(f"[rag] re-embedded {rebuilt} document(s) for provider={ks.embedder.name}")
     seed_sample_knowledge()
+    stats = ks.index_stats()
+    if not stats["rag_ok"]:
+        print(
+            f"[rag] WARNING index empty: docs={stats['rag_docs']} "
+            f"chunks={stats['rag_chunks']} embedder={stats['rag_embedder']}"
+        )
+    else:
+        print(
+            f"[rag] index ready: docs={stats['rag_docs']} "
+            f"chunks={stats['rag_chunks']} embedder={stats['rag_embedder']}"
+        )
 
 
 @asynccontextmanager
