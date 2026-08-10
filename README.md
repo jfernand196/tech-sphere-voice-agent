@@ -45,6 +45,7 @@ cd tech-sphere-voice-agent
 #    Prefers python3.12. Also pre-downloads:
 #      - MiniLM embeddings (~220 MB) via `make warm-embed`
 #      - Kokoro TTS int8 (~115 MB) via `make warm-kokoro`
+#      - Piper Spanish voices (~120 MB) via `make warm-piper`
 #    so the first API boot does not pay those downloads on the clock.
 make setup
 
@@ -89,7 +90,7 @@ That is “solution up and accessible.” Demo exercises (voice, upload, escalat
 | Port 8001 or 5173 busy | Stop the other process, or set `BACKEND_PORT` / Vite port and keep UI proxy aligned. |
 | `python3` / `npm` not found | Install Python 3.9+ and Node 18+; re-run `make setup`. |
 | First RAG slow / model download | Run `make warm-embed` (also part of `make setup`). Offline rollback: `EMBED_PROVIDER=hash` in `backend/.env`. |
-| Robot / OS-dependent TTS | Default is Kokoro (`TTS_PROVIDER=auto`) after `make warm-kokoro`. Rollback: `TTS_PROVIDER=browser`. |
+| Robot / OS-dependent TTS | UI default is **Web Speech** (fast). Kokoro/Piper appear after `make warm-kokoro` / `make warm-piper` (`TTS_PROVIDER=auto`). |
 | Mic / speech errors in the UI | Use Chrome/Edge; allow microphone; HTTPS not required on localhost. |
 | `kokoro-onnx` install fails on 3.9 | Recreate venv with Python 3.12: `rm -rf backend/.venv && make setup`. |
 | Groq HTTP 429 | Free-tier rate limit — wait ~30s and retry the turn. |
@@ -187,7 +188,7 @@ Offline kit check (`make eval-escalate`) previously showed agent-turn ~1.5 s / ~
 | RAG | Upload `.txt/.md/.pdf`, list, delete; local retrieval + citations |
 | Agent | Orchestration + safety + JSON contract |
 | Calls | History + hang-up summary |
-| Voice | Browser Web Speech STT + **Kokoro ONNX TTS** (browser TTS fallback) |
+| Voice | Browser Web Speech STT + TTS selector: **Web Speech (default)** · Kokoro · Piper |
 | UI | Knowledge console + call interface |
 
 Adapters: `backend/app/agent/llm_groq.py`, `llm_gemini.py`. Factory: `factory.py`.

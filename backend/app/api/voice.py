@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
@@ -11,6 +11,10 @@ router = APIRouter(prefix="/voice", tags=["voice"])
 
 class TtsRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=4000)
+    engine: Optional[str] = Field(
+        default=None,
+        description="Server TTS engine: kokoro | piper (omit for auto).",
+    )
     voice: Optional[str] = None
     speed: Optional[float] = Field(default=None, ge=0.6, le=1.4)
 
@@ -25,6 +29,7 @@ def synthesize_tts(body: TtsRequest):
     try:
         audio, content_type = get_voice_service().synthesize_tts(
             body.text,
+            engine=body.engine,
             voice=body.voice,
             speed=body.speed,
         )
@@ -35,11 +40,3 @@ def synthesize_tts(body: TtsRequest):
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"TTS failed: {exc}") from exc
     return Response(content=audio, media_type=content_type)
-
-
-@router.post("/transcribe")
-async def transcribe(file: UploadFile = File(...)):
-    content = await file.read()
-    return await get_voice_service().transcribe_audio(
-        content, filename=file.filename or "audio.webm"
-    )

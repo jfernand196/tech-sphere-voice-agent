@@ -26,12 +26,14 @@ class Settings(BaseSettings):
     # RAG embeddings: fastembed (MiniLM multilingual, default) | hash (offline / rollback)
     embed_provider: str = "fastembed"
 
-    # TTS: auto (Kokoro if models present) | kokoro | browser
+    # TTS: auto (expose Kokoro/Piper when warmed) | kokoro | piper | browser
     tts_provider: str = "auto"
     kokoro_voice: str = "ef_dora"
     kokoro_speed: float = 1.0
     kokoro_model_filename: str = "kokoro-v1.0.int8.onnx"
     kokoro_voices_filename: str = "voices-v1.0.bin"
+    piper_voice: str = "es_MX-ald-medium"
+    piper_speed: float = 1.0
 
     cors_origins: str = "http://localhost:5173"
 
@@ -66,6 +68,10 @@ class Settings(BaseSettings):
         return self.kokoro_dir / self.kokoro_voices_filename
 
     @property
+    def piper_dir(self) -> Path:
+        return self.data_dir / "piper"
+
+    @property
     def origins_list(self) -> List[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
@@ -77,4 +83,5 @@ def get_settings() -> Settings:
     settings.uploads_dir.mkdir(parents=True, exist_ok=True)
     settings.vector_store_dir.mkdir(parents=True, exist_ok=True)
     settings.kokoro_dir.mkdir(parents=True, exist_ok=True)
+    settings.piper_dir.mkdir(parents=True, exist_ok=True)
     return settings

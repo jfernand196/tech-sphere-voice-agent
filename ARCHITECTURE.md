@@ -31,7 +31,7 @@ flowchart LR
 | Layer | Path |
 |---|---|
 | UI call + knowledge | `frontend/src/components/` |
-| Voice STT/TTS | `frontend/src/speech.ts`, `kokoroTts.ts`, `hooks/useAgentVoice.ts`; backend `app/voice/` |
+| Voice STT/TTS | STT = browser Web Speech; TTS = browser (default) or server Kokoro/Piper via `TtsEnginePort` (`app/voice/base.py`) |
 | HTTP adapters | `backend/app/api/` |
 | Use-cases | `backend/app/agent/service.py`, `calls/service.py`, `rag/service.py` |
 | Ports | `backend/app/ports.py` (`LLMClient`, `KnowledgePort`) |
