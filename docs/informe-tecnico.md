@@ -26,13 +26,13 @@ La solución se levanta en **≤15 minutos** siguiendo únicamente el README (`m
 | **Adapter** | `backend/app/agent/llm_groq.py` |
 | **Factory** | `backend/app/agent/factory.py` (bloquea Anthropic/Claude) |
 
-### Por qué lo elegimos
+### Por qué lo elegí
 
-1. **Latencia para voz.** En un agente conversacional, el cuello de botella percibido es el tiempo hasta la respuesta hablada. En una llamada de voz real (10 turnos con mic, Web Speech STT+TTS, Groq Llama 70B) medimos **e2e P50/P95 = 1136 / 1427 ms** y **api P50/P95 = 1044 / 1337 ms** (resumen al colgar; ver §8 y README).
+1. **Latencia para voz.** En un agente conversacional, el cuello de botella percibido es el tiempo hasta la respuesta hablada. En una llamada de voz real (10 turnos con mic, Web Speech STT+TTS, Groq Llama 70B) medí **e2e P50/P95 = 1136 / 1427 ms** y **api P50/P95 = 1044 / 1337 ms** (resumen al colgar; ver §8 y README).
 2. **Cumple la lista cerrada del reto.** Familia Llama en Groq está explícitamente permitida; Anthropic/Claude descalifica.
 3. **JSON estable con temperatura baja (0.2)** para el contrato `AgentTurnResponse`.
-4. **Alternativa evaluada y descartada como default:** Gemini Flash — mejor ventana de contexto para RAG largo, pero priorizamos latencia de turno para la demo de voz. Queda cableada (`LLM_PROVIDER=gemini`) por si el corpus crece.
-5. **Local Llama/Phi (Ollama)** — descartado para la entrega principal por fricción de instalación en el cold start del jurado (≤15 min).
+4. **Alternativa evaluada y descartada como default:** Gemini Flash — mejor ventana de contexto para RAG largo, pero prioricé latencia de turno para la demo de voz. Queda cableada (`LLM_PROVIDER=gemini`) por si el corpus crece.
+5. **Local Llama/Phi (Ollama)** — lo descarté para la entrega principal por fricción de instalación en el cold start del jurado (≤15 min).
 
 ---
 

@@ -121,9 +121,9 @@ Mira a cámara. Puedes tener este texto en un segundo monitor, pero **no leas co
 
 > El problema: después de una cirugía, muchos pacientes quedan en casa con dudas y síntomas. Si algo grave pasa de noche, o no saben si es “normal”, el riesgo es llegar tarde a una alerta humana. Un call center clásico no escala; un chatbot de texto no sirve cuando el paciente está mareado o con las manos ocupadas.
 >
-> Nuestra solución es un agente de **voz** en el navegador, en español colombiano, que conversa, se apoya en protocolos clínicos con RAG y **cita la fuente**, actualiza conocimiento en caliente sin redesplegar, y —lo más importante— decide cuándo **escalar a un humano**, con reglas de seguridad además del modelo.
+> Mi solución es un agente de **voz** en el navegador, en español colombiano, que conversa, se apoya en protocolos clínicos con RAG y **cita la fuente**, actualiza conocimiento en caliente sin redesplegar, y —lo más importante— decide cuándo **escalar a un humano**, con reglas de seguridad además del modelo.
 >
-> El diferencial frente a un FAQ o un bot genérico: trazabilidad clínica, conocimiento vivo desde consola, y asimetría de seguridad —preferimos escalar de más antes que callar una alarma. Además corre sobre un LLM permitido y barato (Llama en Groq), así que el valor está en la ingeniería, no en un modelo cerrado caro.
+> El diferencial frente a un FAQ o un bot genérico: trazabilidad clínica, conocimiento vivo desde consola, y asimetría de seguridad —prefiero escalar de más antes que callar una alarma. Además corre sobre un LLM permitido y barato (Llama en Groq), así que el valor está en la ingeniería, no en un modelo cerrado caro.
 
 ### Pregunta 2 — Decisión técnica (≈90–120 s)
 
@@ -131,7 +131,7 @@ Mira a cámara. Puedes tener este texto en un segundo monitor, pero **no leas co
 
 **Respuesta sugerida (elige UNA decisión — recomendada: guardrails + Groq):**
 
-> La decisión más relevante fue **no dejar el escalate solo en manos del LLM**. El modelo propone, pero después aplicamos `safety.py`: keywords y composites (por ejemplo fiebre + secreción purulenta) pueden **forzar** escalate. Lo calibramos contra las etiquetas rojo/verde del kit oficial y logramos hard accuracy 1.0 en esa muestra.
+> La decisión más relevante fue **no dejar el escalate solo en manos del LLM**. El modelo propone, pero después aplico `safety.py`: keywords y composites (por ejemplo fiebre + secreción purulenta) pueden **forzar** escalate. Lo calibré contra las etiquetas rojo/verde del kit oficial y logré hard accuracy 1.0 en esa muestra.
 >
 > Alternativas que evalué: (1) solo prompt —más simple, pero arriesgado en falso negativo; (2) solo reglas —rígido y pobre en conversación; (3) Gemini Flash como default —mejor contexto largo, pero prioricé **latencia de voz** con Groq Llama 3.3 70B. Anthropic ni se consideró: descalifica.
 >
