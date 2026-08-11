@@ -67,7 +67,7 @@ Pre-register / portal: https://sourcemeridian.com/tech-sphere-challenge
 
 Mirrors: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).
 
-### Eliminatory checks (binary — official rubric uses numbered labels; we keep plain English here)
+### Eliminatory checks (binary — official rubric uses numbered labels; this handoff uses plain English)
 
 | Check | Requirement |
 |---|---|
