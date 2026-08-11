@@ -88,8 +88,14 @@ export default function App() {
           </button>
         </nav>
 
-        <main className="main-stage" key={tab}>
-          {tab === "call" ? <CallPanel /> : <KnowledgeConsole />}
+        <main className="main-stage">
+          {/* Keep both mounted so an in-progress call survives Knowledge (G5 same-call). */}
+          <div hidden={tab !== "call"}>
+            <CallPanel />
+          </div>
+          <div hidden={tab !== "knowledge"}>
+            <KnowledgeConsole />
+          </div>
         </main>
       </div>
     </div>
