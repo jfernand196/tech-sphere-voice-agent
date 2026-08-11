@@ -25,13 +25,13 @@ flowchart LR
   Agent -->|chat completions| Groq
   API -->|upload / delete| Store
   Agent -->|TTS texto| UI
-  UI -->|Kokoro WAV / Web Speech fallback| Paciente
+  UI -->|Web Speech TTS · o WAV Kokoro/Piper| Paciente
 ```
 
 | Layer | Path |
 |---|---|
 | UI call + knowledge | `frontend/src/components/` |
-| Voice STT/TTS | STT = browser Web Speech; TTS = browser (default) or server Kokoro/Piper via `TtsEnginePort` (`app/voice/base.py`) |
+| Voice STT/TTS | STT = browser Web Speech; TTS = browser (UI default) or server **Kokoro** / **Piper** via `TtsEnginePort` (`app/voice/base.py`, `kokoro_engine.py`, `piper_engine.py`) |
 | HTTP adapters | `backend/app/api/` |
 | Use-cases | `backend/app/agent/service.py`, `calls/service.py`, `rag/service.py` |
 | Ports | `backend/app/ports.py` (`LLMClient`, `KnowledgePort`) |
@@ -67,7 +67,7 @@ sequenceDiagram
   Saf-->>Ag: final AgentTurnResponse
   Ag-->>API: reply + sources + escalate + latency_ms
   API-->>FE: turn JSON
-  FE->>FE: speakAgent(reply) via Web Speech TTS
+  FE->>FE: speakAgent(reply) — Web Speech TTS, or /api/voice/tts (Kokoro/Piper WAV)
 ```
 
 Contract (`backend/app/schemas.py` → `AgentTurnResponse`):
@@ -162,8 +162,9 @@ From `backend/.env` (see `.env.example`):
 | `MODEL_ID` | e.g. `llama-3.3-70b-versatile` |
 | `GROQ_API_KEY` / `GEMINI_API_KEY` | Cloud credentials |
 | `EMBED_PROVIDER` | `fastembed` (default) · `hash` (offline rollback) |
-| `TTS_PROVIDER` | `auto` (Kokoro if models present) · `kokoro` · `browser` |
+| `TTS_PROVIDER` | `auto` (expose Kokoro/Piper when warmed) · `kokoro` · `piper` · `browser` |
 | `KOKORO_VOICE` | e.g. `ef_dora` (Spanish) |
+| `PIPER_VOICE` | e.g. `es_MX-ald-medium` |
 | `CORS_ORIGINS` | UI origin |
 | `DATA_DIR` | Uploads + vector store + calls JSON |
 
@@ -204,5 +205,5 @@ flowchart TD
 
 - Real telephony / hospital HIS
 - Enterprise auth / roles
-- Server-side STT (browser Web Speech; Kokoro covers TTS only)
+- Server-side STT (browser Web Speech; server TTS = Kokoro and/or Piper when warmed)
 - External vector DB (local MiniLM via fastembed; Chroma/BGE-M3 left as future work)
