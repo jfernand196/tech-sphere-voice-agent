@@ -200,12 +200,14 @@ make rehearse-jury # RAG · OOD · G5 · escalate · injection (backend up)
 
 ## Submission deliverables
 
-| # | Deliverable | Where |
+| # | Deliverable | Link |
 |---|---|---|
-| 01 | Public repo + cold-start README | this file |
-| 02 | Architecture + decision-flow diagram | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
-| 03 | Technical report (model + why, prompts) | [`docs/informe-tecnico.md`](./docs/informe-tecnico.md) |
-| 04 | Demo video + 2 on-camera answers | Portal video link (screen demo + on-camera Q1/Q2) |
+| 01 | Public repo + cold-start README | https://github.com/jfernand196/tech-sphere-voice-agent |
+| 02 | Architecture + decision-flow diagram | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/ARCHITECTURE.md |
+| 03 | Technical report (model + why, prompts) | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/docs/informe-tecnico.md |
+| 04 | Demo video + 2 on-camera answers | https://drive.google.com/file/d/1rjx0qMlYmtqqT44bNZotweVjgCvfxkXE/view?usp=sharing |
+
+Local copies: [`ARCHITECTURE.md`](./ARCHITECTURE.md) · [`docs/informe-tecnico.md`](./docs/informe-tecnico.md).
 
 Must prove in session/video: ≤15 min lift, allowed LLM, realtime voice, upload/delete knowledge.  
 Scoring: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).
