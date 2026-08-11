@@ -11,7 +11,19 @@ Browser voice agent for Colombian post-op follow-up: clinical RAG, hot knowledge
 | UI | http://127.0.0.1:5173 |
 | API | http://127.0.0.1:8001 |
 
-> Reto / rúbrica (español): [`docs/challenge/`](./docs/challenge/). Informe técnico: [`docs/informe-tecnico.md`](./docs/informe-tecnico.md).
+> Reto / rúbrica (español): [`docs/challenge/`](./docs/challenge/).
+
+## Submission deliverables
+
+| # | Deliverable | Link |
+|---|---|---|
+| 01 | Public repo + cold-start README | https://github.com/jfernand196/tech-sphere-voice-agent |
+| 02 | Architecture + decision-flow diagram | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/ARCHITECTURE.md |
+| 03 | Technical report (model + why, prompts) | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/docs/informe-tecnico.md |
+| 04 | Demo video + 2 on-camera answers | https://drive.google.com/file/d/1rjx0qMlYmtqqT44bNZotweVjgCvfxkXE/view?usp=sharing |
+
+Local copies: [`ARCHITECTURE.md`](./ARCHITECTURE.md) · [`docs/informe-tecnico.md`](./docs/informe-tecnico.md).  
+Scoring: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).
 
 ---
 
@@ -197,17 +209,3 @@ make test          # unit / API tests
 make smoke-app     # live smoke (backend must be running)
 make rehearse-jury # RAG · OOD · G5 · escalate · injection (backend up)
 ```
-
-## Submission deliverables
-
-| # | Deliverable | Link |
-|---|---|---|
-| 01 | Public repo + cold-start README | https://github.com/jfernand196/tech-sphere-voice-agent |
-| 02 | Architecture + decision-flow diagram | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/ARCHITECTURE.md |
-| 03 | Technical report (model + why, prompts) | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/docs/informe-tecnico.md |
-| 04 | Demo video + 2 on-camera answers | https://drive.google.com/file/d/1rjx0qMlYmtqqT44bNZotweVjgCvfxkXE/view?usp=sharing |
-
-Local copies: [`ARCHITECTURE.md`](./ARCHITECTURE.md) · [`docs/informe-tecnico.md`](./docs/informe-tecnico.md).
-
-Must prove in session/video: ≤15 min lift, allowed LLM, realtime voice, upload/delete knowledge.  
-Scoring: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).
