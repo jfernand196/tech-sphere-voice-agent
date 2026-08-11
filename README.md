@@ -58,8 +58,9 @@ git clone https://github.com/jfernand196/tech-sphere-voice-agent.git
 cd tech-sphere-voice-agent
 
 # 2) Install deps + create backend/.env (~3–8 min on a normal network)
-#    Prefers python3.12. Pre-downloads embeddings (+ optional local TTS voices)
-#    so the first API boot does not pay those downloads later.
+#    Creates backend/.venv, pip install -r backend/requirements.txt, npm install,
+#    copies .env.example → backend/.env, pre-downloads embeddings (+ optional TTS).
+#    Prefers python3.12. No separate pip/requirements step needed.
 make setup
 
 # 3) Paste your Groq key into backend/.env
