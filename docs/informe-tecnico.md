@@ -227,6 +227,6 @@ El historial de commits en GitHub refleja el trabajo incremental (PRs de adapter
 | 01 | Repositorio público + README levantable | Sí |
 | 02 | Diagrama arquitectura + flujo de decisión | [`ARCHITECTURE.md`](../ARCHITECTURE.md) |
 | 03 | Este informe (modelo + por qué + prompts) | Este documento |
-| 04 | Video demo + 2 preguntas a cámara | Guion: [`guion-video.md`](./guion-video.md) — grabar y subir enlace |
+| 04 | Video demo + 2 preguntas a cámara | Enlace del video en el portal (demo en pantalla + Q1/Q2 a cámara) |
 
 Compuertas: G2 (cold start) documentada · G3 (modelo) declarada aquí · G4/G5 se demuestran en video y sesión en vivo.

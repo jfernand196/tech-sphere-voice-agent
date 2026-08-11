@@ -205,7 +205,7 @@ make rehearse-jury # RAG · OOD · G5 · escalate · injection (backend up)
 | 01 | Public repo + cold-start README | this file |
 | 02 | Architecture + decision-flow diagram | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | 03 | Technical report (model + why, prompts) | [`docs/informe-tecnico.md`](./docs/informe-tecnico.md) |
-| 04 | Demo video + 2 on-camera answers | [`docs/guion-video.md`](./docs/guion-video.md) |
+| 04 | Demo video + 2 on-camera answers | Portal video link (screen demo + on-camera Q1/Q2) |
 
 Must prove in session/video: ≤15 min lift, allowed LLM, realtime voice, upload/delete knowledge.  
 Scoring: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).

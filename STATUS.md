@@ -127,7 +127,7 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 
 ### Must finish before submit ❌
 
-1. **Record video** following [`docs/guion-video.md`](./docs/guion-video.md); upload link to portal.
+1. **Record video** (local rehearsal notes only; not in the public repo); upload link to portal.
 2. Optional: drop screenshots into `docs/captures/` for informe §9.
 3. Rehearse cold start once with a stopwatch.
 4. Optional polish: token rollup; BGE-M3 + Chroma; Piper/Kokoro.
@@ -196,7 +196,7 @@ Demo script: voice call → clinical question cites PDF → upload/delete custom
 ## 9. Work plan (now → 10 ago)
 
 1. ~~Build + docs + video script~~
-2. **You:** record + upload video (`docs/guion-video.md`).
+2. **You:** record + upload video to the portal.
 3. Optional screenshots; stopwatch cold-start rehearsal.
 4. Optional: token usage rollup in logs.
 
