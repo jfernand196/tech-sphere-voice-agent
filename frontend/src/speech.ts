@@ -9,8 +9,13 @@ type SpeechRecognitionLike = {
   onend: (() => void) | null;
 };
 
+type SpeechRecognitionResultLike = ArrayLike<{ transcript: string }> & {
+  isFinal: boolean;
+};
+
 type SpeechRecognitionEventLike = {
-  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResultLike>;
 };
 
 export type VoiceOption = {
@@ -289,6 +294,11 @@ function speechErrorMessage(code: string): string {
   return map[code] || `Error de voz: ${code}`;
 }
 
+/** Wait this long after the last speech chunk before ending (allows pauses mid-sentence). */
+const LISTEN_SILENCE_MS = 1600;
+/** Hard cap so Hablar cannot hang forever. */
+const LISTEN_MAX_MS = 20000;
+
 export function listenOnce(lang = "es-CO"): Promise<ListenResult> {
   return new Promise((resolve, reject) => {
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -301,24 +311,72 @@ export function listenOnce(lang = "es-CO"): Promise<ListenResult> {
 
     const recognition = new Ctor();
     recognition.lang = lang;
-    recognition.interimResults = false;
-    recognition.continuous = false;
+    // continuous + silence timeout: a breath after "amarilla;" must not drop "tengo fiebre"
+    recognition.interimResults = true;
+    recognition.continuous = true;
+
     let settled = false;
-    recognition.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript?.trim() || "";
-      if (!transcript) {
+    let parts = "";
+    let silenceTimer: number | undefined;
+    let maxTimer: number | undefined;
+
+    const cleanup = () => {
+      window.clearTimeout(silenceTimer);
+      window.clearTimeout(maxTimer);
+    };
+
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      try {
+        recognition.stop();
+      } catch {
+        /* already stopped */
+      }
+      const transcript = parts.replace(/\s+/g, " ").trim();
+      if (!ok || !transcript) {
         reject(new Error(speechErrorMessage("no-speech")));
         return;
       }
-      settled = true;
       resolve({ transcript, endedAt: performance.now() });
     };
-    recognition.onerror = (event) => reject(new Error(speechErrorMessage(event.error)));
-    recognition.onend = () => {
-      if (!settled) {
-        reject(new Error(speechErrorMessage("no-speech")));
-      }
+
+    const bumpSilence = () => {
+      window.clearTimeout(silenceTimer);
+      silenceTimer = window.setTimeout(() => finish(true), LISTEN_SILENCE_MS);
     };
+
+    recognition.onresult = (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        const piece = result?.[0]?.transcript || "";
+        if (!piece) continue;
+        // Only commit finalized segments; interim just keeps the silence timer alive
+        if (result.isFinal) {
+          parts = `${parts} ${piece}`.trim();
+        }
+      }
+      bumpSilence();
+    };
+    recognition.onerror = (event) => {
+      if (settled) return;
+      // "aborted" after we stop() is normal
+      if (event.error === "aborted" && parts.trim()) {
+        finish(true);
+        return;
+      }
+      settled = true;
+      cleanup();
+      reject(new Error(speechErrorMessage(event.error)));
+    };
+    recognition.onend = () => {
+      if (settled) return;
+      // Chrome sometimes ends mid-phrase; if we have text, keep it
+      finish(Boolean(parts.trim()));
+    };
+
+    maxTimer = window.setTimeout(() => finish(true), LISTEN_MAX_MS);
     recognition.start();
   });
 }
