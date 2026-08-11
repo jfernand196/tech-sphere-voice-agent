@@ -156,24 +156,45 @@ Referencia offline (`make eval-escalate`, 10 casos texto): agent-turn ~1.5 s / ~
 
 ## 9. Capturas del demo
 
-Añadir aquí (o en `docs/captures/`) pantallas tomadas de la UI local:
+Archivos en [`docs/captures/`](./captures/). Caso: Ana Ángela Sánchez · día 7 · crítico. Doc G5: `samples/protocolo-zeta-42.txt`.
 
-| # | Captura sugerida | Qué demuestra |
+| # | Archivo | Qué demuestra |
 |---:|---|---|
-| 1 | Call tab · paciente demo rojo día 7 | Setup + caso kit |
-| 2 | Turno con `sources` visibles | RAG + citas |
-| 3 | Knowledge · documento subido | Conocimiento vivo (upload) |
-| 4 | Mismo documento eliminado + pregunta | Olvido tras delete |
-| 5 | Banner / flag de escalate | Decisión de alerta |
-| 6 | Resumen al colgar | Call summary estructurado |
-| 7 | `make verify` en terminal | Cold start / LLM ready |
+| 1 | [`01-call-setup.png`](./captures/01-call-setup.png) | Setup + caso kit |
+| 2 | [`02-sources.png`](./captures/02-sources.png) | RAG + citas |
+| 3 | [`03-knowledge-upload.png`](./captures/03-knowledge-upload.png) | Conocimiento vivo (upload) |
+| 4 | [`04-knowledge-delete.png`](./captures/04-knowledge-delete.png) | Olvido tras delete |
+| 5 | [`05-escalate.png`](./captures/05-escalate.png) | Decisión de alerta |
+| 6 | [`06-summary.png`](./captures/06-summary.png) | Call summary estructurado |
+| 7 | [`07-make-verify.png`](./captures/07-make-verify.png) | Cold start / LLM ready |
 
-```bash
-# Cómo generar capturas en 2 minutos
-make backend    # terminal 1
-make frontend   # terminal 2
-# Abrir http://127.0.0.1:5173 → recorrer checklist del README → guardar PNGs en docs/captures/
-```
+### 1. Setup
+
+![Setup llamada día 7 crítico](./captures/01-call-setup.png)
+
+### 2. RAG + sources
+
+![Turno con sources Protocolo herida](./captures/02-sources.png)
+
+### 3. Upload conocimiento vivo
+
+![Knowledge con protocolo-zeta-42 indexado](./captures/03-knowledge-upload.png)
+
+### 4. Olvido tras delete
+
+![Tras borrar ZETA-42 el agente declara el límite](./captures/04-knowledge-delete.png)
+
+### 5. Escalate
+
+![Alerta humana por disnea y sangrado](./captures/05-escalate.png)
+
+### 6. Resumen al colgar
+
+![Call summary con alerta y fuentes](./captures/06-summary.png)
+
+### 7. make verify
+
+![make verify llm_ready rag_ok](./captures/07-make-verify.png)
 
 ---
 
