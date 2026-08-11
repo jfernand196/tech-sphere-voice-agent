@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-
-def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.timeutil import utc_now as _utc_now
 
 
 class Severity(str, Enum):

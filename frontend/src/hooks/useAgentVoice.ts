@@ -17,7 +17,6 @@ import {
   type TtsEngine,
 } from "../serverTts";
 
-const VOICE_STORAGE_KEY = "tsva.voiceName";
 const VOICE_KEY: Record<TtsEngine, string> = {
   browser: "tsva.browserVoiceName",
   kokoro: "tsva.kokoroVoiceName",
@@ -61,10 +60,7 @@ export function useAgentVoice() {
         : options[0]?.name || "";
 
     setVoices(options);
-    const saved =
-      localStorage.getItem(key) ||
-      localStorage.getItem(VOICE_STORAGE_KEY) ||
-      "";
+    const saved = localStorage.getItem(key) || "";
     const next =
       (saved && options.some((v) => v.name === saved) && saved) || fallback;
     setVoiceName(next);
@@ -82,7 +78,6 @@ export function useAgentVoice() {
   function selectVoice(name: string) {
     setVoiceName(name);
     localStorage.setItem(VOICE_KEY[ttsEngine], name);
-    localStorage.setItem(VOICE_STORAGE_KEY, name);
   }
 
   /**

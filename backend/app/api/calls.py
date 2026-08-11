@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Body, HTTPException
 
 from app.api.deps import get_agent_service, get_call_service, settings
 from app.schemas import (
     AgentTurnResponse,
-    CallRecord,
     CallSummary,
     ChatTurnRequest,
     EndCallRequest,
@@ -16,11 +15,6 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/calls", tags=["calls"])
-
-
-@router.get("", response_model=List[CallRecord])
-def list_calls():
-    return get_call_service().list_calls()
 
 
 @router.post("/start", response_model=StartCallResponse)
@@ -37,14 +31,6 @@ async def start_call(body: StartCallRequest):
         greeting=greeting,
         model_id=settings().model_id,
     )
-
-
-@router.get("/{call_id}", response_model=CallRecord)
-def get_call(call_id: str):
-    record = get_call_service().get(call_id)
-    if not record:
-        raise HTTPException(status_code=404, detail="Call not found")
-    return record
 
 
 @router.post("/{call_id}/turn", response_model=AgentTurnResponse)

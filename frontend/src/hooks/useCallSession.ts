@@ -6,6 +6,18 @@ import { useLocale } from "../i18n/LocaleContext";
 import { canUseSpeechRecognition, listenOnce } from "../speech";
 import type { ChatItem, CallSummary, DemoPatient } from "../types";
 
+function patchLastAgentE2e(messages: ChatItem[], e2eMs: number): ChatItem[] {
+  const copy = [...messages];
+  for (let i = copy.length - 1; i >= 0; i -= 1) {
+    const m = copy[i];
+    if (m?.role === "agent") {
+      copy[i] = { ...m, e2e_latency_ms: e2eMs };
+      break;
+    }
+  }
+  return copy;
+}
+
 type Options = {
   /** Speak reply; return E2E ms when speechEndedAt was provided. */
   onAgentReply?: (text: string, speechEndedAt?: number) => Promise<number | undefined> | void;
@@ -98,13 +110,17 @@ export function useCallSession({ onAgentReply }: Options = {}) {
     setMessages((prev) => [...prev, { role: "patient", content: message }]);
     try {
       const turn = await sendTurn(callId, message);
+      // Show reply + free the mic before TTS so the patient can barge in.
+      setMessages((prev) => [...prev, agentChatItemFromTurn(turn)]);
+      setBusy(false);
       const spoken = await onAgentReply?.(turn.reply, speechEndedAt);
       const e2eMs = typeof spoken === "number" ? spoken : undefined;
-      if (e2eMs != null) e2eSamplesRef.current.push(e2eMs);
-      setMessages((prev) => [...prev, agentChatItemFromTurn(turn, e2eMs)]);
+      if (e2eMs != null) {
+        e2eSamplesRef.current.push(e2eMs);
+        setMessages((prev) => patchLastAgentE2e(prev, e2eMs));
+      }
     } catch (e) {
       setError(errMessage(e, t("call.errorTurn")));
-    } finally {
       setBusy(false);
     }
   }

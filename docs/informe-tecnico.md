@@ -135,7 +135,7 @@ Al arrancar el backend se siembra un protocolo genérico de alarma (`main.py` �
 
 ## 8. Métricas observadas
 
-Instrumentación: tokens Groq en `llm_groq.py`; E2E voz en frontend (`listenOnce.endedAt` → TTS `onstart`); agregados P50/P95 y costo en `CallSummary` al colgar. Los mismos números están en el README (§ Metrics).
+Instrumentación: tokens Groq en `llm_groq.py`; E2E voz en frontend (`listenOnce.endedAt` → TTS `onstart`); agregados P50/P95 y costo en `CallSummary` al colgar. Los mismos números están en el README (§ Metrics). Durante el silencio de red: banner “Pensando…”; al hablar, “Escuchando…”; el paciente puede interrumpir el TTS (barge-in) con Hablar/Enviar.
 
 **Muestra de voz (10 turnos con mic):** Groq `llama-3.3-70b-versatile` · Web Speech STT + Web Speech TTS · caso día 7 crítico · resumen al colgar.
 

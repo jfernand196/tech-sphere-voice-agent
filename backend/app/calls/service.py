@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 
 from app.agent.safety import severity_rank
@@ -17,10 +16,7 @@ from app.schemas import (
     SourceCitation,
     StartCallRequest,
 )
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+from app.timeutil import utc_now
 
 
 def agent_message_from_turn(turn: AgentTurnResponse) -> CallMessage:
@@ -116,9 +112,6 @@ class CallService:
     def get(self, call_id: str) -> CallRecord | None:
         return self._calls.get(call_id)
 
-    def list_calls(self) -> list[CallRecord]:
-        return sorted(self._calls.values(), key=lambda c: c.created_at, reverse=True)
-
     def append_user(self, call_id: str, message: str) -> CallRecord:
         record = self._require(call_id)
         record.messages.append(CallMessage(role="patient", content=message))
@@ -147,7 +140,7 @@ class CallService:
             sources_used=clinical.sources_used,
             summary_text=_summary_text(record, clinical),
             turn_count=metrics.patient_turns,
-            ended_at=_utcnow(),
+            ended_at=utc_now(),
             tokens_in_total=metrics.tokens_in_total,
             tokens_out_total=metrics.tokens_out_total,
             model_invocations_total=metrics.model_invocations_total,
@@ -160,7 +153,7 @@ class CallService:
             cost_note=metrics.cost_note,
         )
         record.status = "ended"
-        record.ended_at = _utcnow()
+        record.ended_at = utc_now()
         self._persist()
         return record
 

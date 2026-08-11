@@ -8,11 +8,11 @@ import re
 import uuid
 from collections import Counter
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from app.rag.embeddings import Embedder, HashEmbedder, tokenize
+from app.timeutil import utc_now
 
 # Okapi BM25 defaults
 _BM25_K1 = 1.5
@@ -22,10 +22,6 @@ _RRF_K = 60
 # Cosine floor: hash scores are sparse; dense MiniLM scores are typically higher.
 _VEC_FLOOR_HASH = 0.05
 _VEC_FLOOR_DENSE = 0.12
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 @dataclass
@@ -355,7 +351,7 @@ class LocalVectorStore:
             title=title,
             filename=filename,
             chunk_count=len(new_chunks),
-            created_at=_utcnow().isoformat(),
+            created_at=utc_now().isoformat(),
             metadata=meta,
         )
         self._documents[doc_id] = record
