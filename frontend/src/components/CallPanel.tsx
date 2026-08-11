@@ -7,7 +7,7 @@ import { useLocale } from "../i18n/LocaleContext";
 import CallComposer from "./CallComposer";
 import CallSummaryCard from "./CallSummaryCard";
 import ChatMessage from "./ChatMessage";
-import ListenBanner from "./ListenBanner";
+import CallStatusBanner from "./CallStatusBanner";
 import VoiceControls from "./VoiceControls";
 
 export default function CallPanel() {
@@ -180,7 +180,6 @@ export default function CallPanel() {
                 voice.stopAgent();
                 void call.end();
               }}
-              disabled={call.busy}
             >
               {t("call.hangup")}
             </button>
@@ -194,15 +193,24 @@ export default function CallPanel() {
                 showMetricsHint={idx === metricsHintAt}
               />
             ))}
-            {call.listening ? <ListenBanner /> : null}
+            {call.listening ? <CallStatusBanner variant="listening" /> : null}
+            {call.busy && !call.listening ? (
+              <CallStatusBanner variant="thinking" />
+            ) : null}
             <div ref={call.bottomRef} />
           </div>
 
           <CallComposer
             input={call.input}
             onInputChange={call.setInput}
-            onSend={() => void call.send()}
-            onListen={() => void call.listenAndSend()}
+            onSend={() => {
+              voice.stopAgent();
+              void call.send();
+            }}
+            onListen={() => {
+              voice.stopAgent();
+              void call.listenAndSend();
+            }}
             busy={call.busy}
             listening={call.listening}
           />

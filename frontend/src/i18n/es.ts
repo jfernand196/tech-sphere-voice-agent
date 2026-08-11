@@ -42,6 +42,9 @@ export const es = {
   "call.listening": "Escuchando…",
   "call.listeningHint": "Habla ahora. El micrófono está activo.",
   "call.listeningPlaceholder": "Escuchando tu voz…",
+  "call.thinking": "Pensando…",
+  "call.thinkingHint":
+    "Estoy revisando tus síntomas y los protocolos. En un momento te respondo.",
   "call.metricsHintTitle": "Qué significan e2e · api · tok",
   "call.metricsHintE2e":
     "Voz→voz: desde que terminas de hablar hasta que empieza el audio del agente (métrica oficial del reto).",
@@ -126,9 +129,6 @@ export const es = {
   "severity.moderate": "Moderada",
   "severity.severe": "Severa",
 
-  "label.verde": "verde",
-  "label.amarillo": "amarillo",
-  "label.rojo": "rojo",
   "label.verdeDetail": "estable · solo demo",
   "label.amarilloDetail": "vigilancia · solo demo",
   "label.rojoDetail": "crítico · solo demo",
@@ -147,6 +147,8 @@ export const es = {
   "knowledge.upload": "Subir e indexar",
   "knowledge.searchAria": "Buscar documentos",
   "knowledge.searchPlaceholder": "Buscar por título o archivo…",
+  "knowledge.loading": "Cargando documentos…",
+  "knowledge.loadingCount": "…",
   "knowledge.empty": "Aún no hay documentos. Sube el primero para alimentar el RAG.",
   "knowledge.noMatch": "Ningún documento coincide con la búsqueda.",
   "knowledge.delete": "Eliminar",

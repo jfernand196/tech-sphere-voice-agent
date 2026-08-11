@@ -169,7 +169,38 @@ From `backend/.env` (see `.env.example`):
 
 ---
 
-## 7. What is intentionally out of scope
+## 7. Conversation design (what the jury hears)
+
+Soft agenda lives in `backend/app/agent/prompts.py` (not a hard clinical state machine):
+
+```mermaid
+flowchart TD
+  Open["Apertura<br/>greeting en calls.py"] --> Explore["Exploración<br/>síntomas / herida / fiebre"]
+  Explore --> Orient["Orientación<br/>1 indicación RAG por turno"]
+  Orient --> Explore
+  Explore --> Amb{"¿Ambiguo?"}
+  Amb -->|sí| Ask["Indaga 1 detalle"]
+  Ask --> Explore
+  Amb -->|alarma| Esc["safety → escalate"]
+  Explore --> Close["Cierre<br/>paciente se despide → 1 paso + listo para colgar"]
+  Explore --> Off{"¿Fuera de guion?"}
+  Off -->|ajeno / inyección| Redir["Redirige a recuperación"]
+  Redir --> Explore
+```
+
+| Rubric ask | Implementation |
+|---|---|
+| Open / conduct / close | Template greeting → prompt agenda → user hang-up + `CallSummary` |
+| Off-script | Prompt redirect + ignore role-change; escalate keywords for “quiero un doctor” |
+| Long instructions | One care step per turn; ask before the next |
+| Silences | UI `CallStatusBanner` (thinking / listening); barge-in stops TTS |
+
+**Covered vs challenge:** voice call, RAG+citations, hot knowledge, escalate, summary, metrics.  
+**Intentional gaps:** no telephony/HIS; no hard stage automaton; STT quality = browser.
+
+---
+
+## 8. What is intentionally out of scope
 
 - Real telephony / hospital HIS
 - Enterprise auth / roles

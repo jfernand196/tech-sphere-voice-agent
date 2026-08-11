@@ -1,4 +1,4 @@
-.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq smoke-app verify warm-embed warm-kokoro warm-piper
+.PHONY: setup backend frontend dev seed-check kit-clone ingest-kit export-demo eval-escalate test smoke-groq smoke-app rehearse-jury verify warm-embed warm-kokoro warm-piper
 
 # Kokoro/Piper TTS need Python ≥3.10 (onnxruntime≥1.20). Prefer 3.12 when present.
 PYTHON ?= $(shell command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3)
@@ -39,6 +39,10 @@ verify:
 # Broader live smoke (health, RAG synonyms, voice caps, call turn). Requires make backend.
 smoke-app:
 	cd backend && . .venv/bin/activate && PYTHONPATH=. python scripts/smoke_app.py
+
+# Jury rehearsal (RAG, OOD, G5 same-call forget, red/green/amb, injection). Requires make backend.
+rehearse-jury:
+	cd backend && . .venv/bin/activate && PYTHONPATH=. python scripts/rehearse_jury.py
 
 # Official artifacts: https://github.com/TechSphere2026/ParticipantArtifacts
 kit-clone:

@@ -1,11 +1,5 @@
 import { useLocale } from "../i18n/LocaleContext";
-import {
-  summaryMetricsLegend,
-  turnMetricsLegend,
-  type MetricsHintItem,
-} from "../metricsLegend";
-
-export type { MetricsHintItem };
+import { summaryMetricsLegend, turnMetricsLegend } from "../metricsLegend";
 
 type Variant = "turn" | "summary";
 

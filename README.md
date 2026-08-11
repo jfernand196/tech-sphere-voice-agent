@@ -195,6 +195,7 @@ How to refresh: run a ≥10-turn voice call → End call → read P50/P95 on the
 ```bash
 make test          # unit / API tests
 make smoke-app     # live smoke (backend must be running)
+make rehearse-jury # RAG · OOD · G5 · escalate · injection (backend up)
 ```
 
 ## Submission deliverables

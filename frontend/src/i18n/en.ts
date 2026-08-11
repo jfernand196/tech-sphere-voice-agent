@@ -44,6 +44,9 @@ export const en: Record<MessageKey, string> = {
   "call.listening": "Listening…",
   "call.listeningHint": "Speak now. The microphone is on.",
   "call.listeningPlaceholder": "Listening to your voice…",
+  "call.thinking": "Thinking…",
+  "call.thinkingHint":
+    "Reviewing your symptoms and protocols. I’ll reply in a moment.",
   "call.metricsHintTitle": "What e2e · api · tok mean",
   "call.metricsHintE2e":
     "Speech→speech: from when you finish speaking until the agent audio starts (official challenge metric).",
@@ -128,9 +131,6 @@ export const en: Record<MessageKey, string> = {
   "severity.moderate": "Moderate",
   "severity.severe": "Severe",
 
-  "label.verde": "green",
-  "label.amarillo": "yellow",
-  "label.rojo": "red",
   "label.verdeDetail": "stable · demo only",
   "label.amarilloDetail": "watch · demo only",
   "label.rojoDetail": "critical · demo only",
@@ -149,6 +149,8 @@ export const en: Record<MessageKey, string> = {
   "knowledge.upload": "Upload & index",
   "knowledge.searchAria": "Search documents",
   "knowledge.searchPlaceholder": "Search by title or filename…",
+  "knowledge.loading": "Loading documents…",
+  "knowledge.loadingCount": "…",
   "knowledge.empty": "No documents yet. Upload the first one to feed the RAG.",
   "knowledge.noMatch": "No documents match your search.",
   "knowledge.delete": "Delete",

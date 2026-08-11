@@ -16,6 +16,7 @@ const GROUP_ORDER: DocGroup[] = ["uploaded", "kit", "seed"];
 export default function KnowledgeConsole() {
   const { t } = useLocale();
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,13 +27,37 @@ export default function KnowledgeConsole() {
   const [kitOpen, setKitOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function refresh() {
-    const data = await listDocuments();
-    setDocs(data);
+  /** Single fetch path: initial (loading + soft error) or refresh (rethrows for callers). */
+  async function loadDocs(
+    mode: "initial" | "refresh",
+    isCancelled: () => boolean = () => false,
+  ) {
+    if (mode === "initial") {
+      setLoading(true);
+      setError(null);
+    }
+    try {
+      const data = await listDocuments();
+      if (isCancelled()) return;
+      setDocs(data);
+    } catch (e) {
+      if (isCancelled()) return;
+      if (mode === "initial") {
+        setError(errMessage(e, t("knowledge.errorLoad")));
+        return;
+      }
+      throw e;
+    } finally {
+      if (mode === "initial" && !isCancelled()) setLoading(false);
+    }
   }
 
   useEffect(() => {
-    void refresh().catch((e) => setError(errMessage(e, t("knowledge.errorLoad"))));
+    let cancelled = false;
+    void loadDocs("initial", () => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [t]);
 
   const filtered = useMemo(() => {
@@ -79,7 +104,7 @@ export default function KnowledgeConsole() {
       setFile(null);
       setTitle("");
       if (inputRef.current) inputRef.current.value = "";
-      await refresh();
+      await loadDocs("refresh");
     } catch (e) {
       setError(errMessage(e, t("knowledge.errorUpload")));
     } finally {
@@ -98,7 +123,7 @@ export default function KnowledgeConsole() {
     try {
       await deleteDocument(doc.doc_id);
       setMessage(t("knowledge.deleted"));
-      await refresh();
+      await loadDocs("refresh");
     } catch (e) {
       setError(errMessage(e, t("knowledge.errorDelete")));
     } finally {
@@ -143,7 +168,11 @@ export default function KnowledgeConsole() {
           <h2>{t("knowledge.title")}</h2>
           <p>{t("knowledge.lede")}</p>
         </div>
-        <span className="count-pill">{t("knowledge.docsCount", { n: docs.length })}</span>
+        <span className="count-pill">
+          {loading
+            ? t("knowledge.loadingCount")
+            : t("knowledge.docsCount", { n: docs.length })}
+        </span>
       </header>
 
       <div className="knowledge-layout">
@@ -209,7 +238,11 @@ export default function KnowledgeConsole() {
           </label>
 
           <div className="docs-list">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="empty-state" role="status" aria-live="polite">
+                <p>{t("knowledge.loading")}</p>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="empty-state">
                 <p>{docs.length === 0 ? t("knowledge.empty") : t("knowledge.noMatch")}</p>
               </div>
