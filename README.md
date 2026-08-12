@@ -1,211 +1,220 @@
-# Tech Sphere 2026 — Post-operative voice agent
+# Agente de voz post-operatorio — Tech Sphere 2026
 
-**Para el jurado (ES):** agente de voz de seguimiento post-operatorio (Colombia). Se levanta en **≤15 minutos** solo con esta sección *Cold start*. El modelo permitido por defecto es **Groq + Llama**. La demo de micrófono, subir/borrar conocimiento y escalate es **después** del reloj.
+Agente de voz en el navegador para seguimiento post-operatorio en español de Colombia. El paciente habla o escribe; el agente busca en protocolos, cita la fuente, puede **alertar a un humano** y al colgar deja un resumen.
 
-Browser voice agent for Colombian post-op follow-up: clinical RAG, hot knowledge console, source citations, escalate-to-human, and structured call summary.
+Se levanta en **≤15 minutos** solo con la sección *Cold start*. El modelo de la llamada es **Llama 3.3 70B en Groq**. Micrófono, subir/borrar documentos y alerta son **después** del reloj.
 
-| Item | Value |
-|------|-------|
-| Public repo | https://github.com/jfernand196/tech-sphere-voice-agent |
-| Allowed LLM (default) | **Groq + Llama** `llama-3.3-70b-versatile` |
-| UI | http://127.0.0.1:5173 |
+| | |
+|---|---|
+| Repositorio | https://github.com/jfernand196/tech-sphere-voice-agent |
+| Modelo (default) | Groq + Llama `llama-3.3-70b-versatile` |
+| Pantalla | http://127.0.0.1:5173 |
 | API | http://127.0.0.1:8001 |
 
-> Reto / rúbrica (español): [`docs/challenge/`](./docs/challenge/).
+Rúbrica: [`docs/challenge/`](./docs/challenge/).
 
-## Submission deliverables
+## Cómo leer esto
 
-| # | Deliverable | Link |
+| Si buscas… | Ve a… |
+|---|---|
+| Levantar la app en ≤15 min | Esta página, *Cold start* |
+| Recuadros, un turno, alerta | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
+| Modelo, prompts, métricas, capturas | [`docs/informe-tecnico.md`](./docs/informe-tecnico.md) |
+
+## Entregables
+
+| # | Entregable | Enlace |
 |---|---|---|
-| 01 | Public repo + cold-start README | https://github.com/jfernand196/tech-sphere-voice-agent |
-| 02 | Architecture + decision-flow diagram | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/ARCHITECTURE.md |
-| 03 | Technical report (model + why, prompts) | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/docs/informe-tecnico.md |
-| 04 | Demo video + 2 on-camera answers | https://drive.google.com/file/d/1rjx0qMlYmtqqT44bNZotweVjgCvfxkXE/view?usp=sharing |
-
-Local copies: [`ARCHITECTURE.md`](./ARCHITECTURE.md) · [`docs/informe-tecnico.md`](./docs/informe-tecnico.md).  
-Scoring: [`docs/challenge/rubrica-evaluacion.md`](./docs/challenge/rubrica-evaluacion.md).
+| 01 | Repositorio + este README | https://github.com/jfernand196/tech-sphere-voice-agent |
+| 02 | Arquitectura y flujo de decisión | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/ARCHITECTURE.md |
+| 03 | Informe técnico | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/docs/informe-tecnico.md |
+| 04 | Video demo + 2 preguntas a cámara | https://drive.google.com/file/d/1rjx0qMlYmtqqT44bNZotweVjgCvfxkXE/view?usp=sharing |
 
 ---
 
-## Cold start (≤ 15 minutes) — jury path
+## Cold start (≤ 15 minutos)
 
-This is the **only** path needed to stop the G2 clock. Follow it top to bottom.
+Este es el **único** camino para parar el reloj de G2. De arriba a abajo.
 
-- **Counts toward 15 min:** clone → `make setup` → key → smoke → backend + frontend → `make verify` → UI loads.
-- **Does not count:** voice demo, upload/delete knowledge, escalate, official kit, eval scripts, metrics refresh.
+- **Cuenta en los 15 min:** clonar → `make setup` → clave → smoke → backend + frontend → `make verify` → abre la UI.
+- **No cuenta:** demo de micrófono, subir/borrar docs, alerta, kit oficial, eval, refrescar métricas.
 
-### Before the clock (2–3 min)
+### Antes del reloj (2–3 min)
 
-Install once on the machine (tools only — not the app):
+Instala una vez en la máquina (herramientas, no la app):
 
-| Tool | Suggested version | Check |
+| Herramienta | Versión | Comprobar |
 |---|---|---|
-| macOS or Linux | — | — |
-| Git | any recent | `git --version` |
-| Make | any | `make --version` |
-| Python | **3.12 recommended** (3.10+ OK) | `python3.12 --version` |
-| Node.js | **18+** (LTS ok) | `node -v` |
-| npm | comes with Node | `npm -v` |
-| Chrome or Edge | recent | mic / Web Speech STT |
+| macOS o Linux | — | — |
+| Git | reciente | `git --version` |
+| Make | cualquiera | `make --version` |
+| Python | **3.12** (3.10+ vale) | `python3.12 --version` |
+| Node.js | **18+** | `node -v` |
+| npm | viene con Node | `npm -v` |
+| Chrome o Edge | reciente | micrófono / Web Speech |
 
-**API key (free):** https://console.groq.com/keys — keep it ready to paste. No paid plan required.
+**Clave gratis:** https://console.groq.com/keys — tenla lista para pegar. No hace falta plan de pago.
 
-### Timed path — copy/paste
+### Camino cronometrado — copiar y pegar
 
 ```bash
-# 1) Clone
+# 1) Clonar
 git clone https://github.com/jfernand196/tech-sphere-voice-agent.git
 cd tech-sphere-voice-agent
 
-# 2) Install deps + create backend/.env (~3–8 min on a normal network)
-#    Prefers python3.12. Pre-downloads embeddings (+ optional local TTS voices)
-#    so the first API boot does not pay those downloads later.
+# 2) Instalar deps y crear backend/.env (~3–8 min con red normal)
+#    Prefiere python3.12. Baja MiniLM (~220 MB) y voces TTS opcionales
+#    para que el primer arranque del API no pague esas descargas.
 make setup
 
-# 3) Paste your Groq key into backend/.env
+# 3) Pega tu clave Groq en backend/.env
 #      LLM_PROVIDER=groq
 #      MODEL_ID=llama-3.3-70b-versatile
-#      GROQ_API_KEY=gsk_...your_key...
-#    Leave other lines as-is.
+#      GROQ_API_KEY=gsk_...tu_clave...
+#    El resto de líneas déjalas como están.
 
-# 4) Prove the LLM answers (must print OK)
+# 4) Comprueba que el modelo contesta (debe imprimir OK)
 make smoke-groq
 
-# 5) Start API (terminal 1) — leave it running
+# 5) Arranca el API (terminal 1) — déjala abierta
 make backend
-#    Expect: Uvicorn on http://127.0.0.1:8001
-#    Expect log: [rag] index ready: docs=… chunks=…
+#    Esperado: Uvicorn en http://127.0.0.1:8001
+#    Log: [rag] index ready: docs=… chunks=…
 
-# 6) Start UI (terminal 2) — leave it running
+# 6) Arranca la UI (terminal 2) — déjala abierta
 make frontend
-#    Expect: Vite on http://127.0.0.1:5173
+#    Esperado: Vite en http://127.0.0.1:5173
 ```
 
-### Done criteria — **stop the clock** when all are true
+### Listo — para el reloj cuando todo esto sea verdad
 
-In a **third** terminal:
+En una **tercera** terminal:
 
 ```bash
 make verify
 ```
 
-You should see something like:
+Debes ver algo así:
 
 ```text
 status=ok llm_ready=true rag_ok=true docs=… chunks=… llm=groq/llama-3.3-70b-versatile
 ```
 
-Then open **http://127.0.0.1:5173** — Call tab and Knowledge console load.
+Abre **http://127.0.0.1:5173** — pestañas Llamada y Conocimiento.
 
-That is “solution up and accessible” for G2.  
-**Do not** spend clock time on mic tests, uploads, or escalate — those are the smoke demo **after** lift.
+Eso es “solución en pie y accesible” para G2.  
+**No** gastes reloj en micrófono, subidas ni alerta: eso es la demo **después** de levantar.
 
-### If something fails
+### Si algo falla
 
-| Symptom | Fix |
+| Qué ves | Qué hacer |
 |---|---|
-| `make smoke-groq` → missing key | Set `GROQ_API_KEY` in `backend/.env` (no quotes). Re-run smoke. |
-| `llm_ready=false` | Key wrong or `LLM_PROVIDER` not `groq`. Fix `.env`, restart `make backend`. |
-| `rag_ok=false` / `degraded` with docs but 0 chunks | Restart `make backend` and wait for `[rag] index ready` / re-embed log. |
-| Port 8001 or 5173 busy | Stop the other process (`make frontend` uses `:5173` strict). |
-| `python3` / `npm` not found | Install Python 3.12 + Node 18+; re-run `make setup`. |
-| First RAG / model download slow | Already covered by `make setup` (`warm-embed`). Offline rollback: `EMBED_PROVIDER=hash`. |
-| Mic / speech errors | Chrome/Edge; allow microphone; localhost is fine (no HTTPS). |
-| `kokoro-onnx` fails on Python 3.9 | Use 3.12: `rm -rf backend/.venv && make setup`. TTS default in UI is **Web Speech** anyway. |
-| Groq HTTP 429 | Free-tier limit — wait ~30s and retry. |
+| `make smoke-groq` → falta la clave | Pon `GROQ_API_KEY` en `backend/.env` (sin comillas). Vuelve a correr smoke. |
+| `llm_ready=false` | Clave mal o `LLM_PROVIDER` no es `groq`. Arregla `.env` y reinicia `make backend`. |
+| `rag_ok=false` / docs pero 0 trozos | Reinicia `make backend` y espera `[rag] index ready`. |
+| Puerto 8001 o 5173 ocupado | Cierra el otro proceso (`make frontend` usa `:5173` estricto). |
+| No encuentra `python3` / `npm` | Instala Python 3.12 + Node 18+; otra vez `make setup`. |
+| La primera búsqueda tarda | `make setup` ya baja MiniLM (`warm-embed`). Sin red: `EMBED_PROVIDER=hash` (peor significado; no es el modo demo). |
+| Micrófono / voz | Chrome o Edge; permite el mic; localhost vale (no hace falta HTTPS). |
+| `kokoro-onnx` falla en Python 3.9 | Usa 3.12: `rm -rf backend/.venv && make setup`. La voz de salida por defecto es la del **navegador**. |
+| Groq HTTP **429** | El plan gratis se llenó. Espera ~30 s y reintenta. No es un bug del agente. |
 
-Without a key, the backend **does not** silently fall back to `mock` when `LLM_PROVIDER=groq`.
+Si `LLM_PROVIDER=groq` y no hay clave, el backend **no** se pasa solo a `mock`.
 
 ---
 
-## Allowed language models (hard constraint — G3)
+## Modelos permitidos (G3)
 
-Orchestration, voice, and RAG are open. **The LLM is not:**
+Orquestación, voz y documentos son libres. **El modelo que escribe el turno no:**
 
-| Allowed | Not allowed |
+| Permitido | No permitido |
 |---|---|
 | Gemini Flash (AI Studio) | Claude / Anthropic |
-| Llama via Groq | Paid GPT / other families |
-| Local Llama 3.x 1B–3B or Phi Mini (Ollama) | |
+| Llama en Groq | GPT de pago y otras familias |
+| Llama 3.x 1B–3B o Phi Mini local (Ollama) | |
 
-Default in this repo: **Groq + Llama**. Alternative: `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` (see `.env.example`). Details: [`docs/challenge/stack-tecnico.md`](./docs/challenge/stack-tecnico.md).
-
----
-
-## After lift — 2-minute smoke demo (not on the 15‑min clock)
-
-Use this **after** `make verify` succeeds and the UI is open:
-
-1. **Call** → pick a demo patient (e.g. day 7 · crítico) or edit a free patient.  
-2. Speak or type a symptom from the on-screen hint (hint is actor-only; not sent to the model).  
-3. Ask a clinical care question → reply should show **sources**.  
-4. **Knowledge** → upload a small `.txt` / `.pdf` → ask about it → **Eliminar** → agent stops using it.  
-5. Say “no puedo respirar” or “quiero un doctor” → **escalate**.  
-6. **End call** → structured summary card (latency / tokens).
-
-Voice TTS defaults to **Web Speech** (fast). Kokoro / Piper are optional local engines after `make warm-kokoro` / `make warm-piper`.
-
-Seed protocol loads automatically on backend start (enough for lift + basic RAG). Official clinical PDFs are optional (next section).
+Default de este repo: **Groq + Llama**. Alternativa: `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` (`.env.example`). Detalle: [`docs/challenge/stack-tecnico.md`](./docs/challenge/stack-tecnico.md).
 
 ---
 
-## Optional — official kit (not required for cold start)
+## Después de levantar — demo de 2 minutos (fuera del reloj)
+
+Cuando `make verify` pase y la UI esté abierta:
+
+1. **Llamada** → elige un paciente demo (p. ej. día 7 · crítico) o edita uno libre.
+2. Habla o escribe un síntoma de la pista en pantalla (la pista es para el actor; **no** se manda al modelo).
+3. Pregunta de cuidado clínico → la respuesta debe mostrar **fuentes**.
+4. **Conocimiento** → sube un `.txt` / `.pdf` chico → pregunta por él → **Eliminar** → el agente deja de usarlo.
+5. Di “no puedo respirar” o “quiero un doctor” → **alerta a humano**.
+6. **Colgar** → resumen (latencias / tokens).
+
+La voz de salida por defecto es la del **navegador** (rápida). Kokoro / Piper son opt-in si corriste `make warm-kokoro` / `make warm-piper`.
+
+Al arrancar el backend se carga un protocolo genérico de alarma (alcanza para levantar y citar algo). Los PDFs oficiales del kit son optativos (siguiente sección).
+
+---
+
+## Optativo — kit oficial (no entra en el cold start)
 
 ```bash
-make kit-clone                                          # ~127MB, gitignored
+make kit-clone                                          # ~127MB, no va a git
 make ingest-kit ARGS='--scenario cholecystitis --limit 8'
-make export-demo                                        # refresh UI patient catalog
-make eval-escalate ARGS='--provider mock'               # offline escalate score
-make eval-escalate                                      # same with .env LLM (Groq)
+make export-demo                                        # refresca el catálogo de pacientes
+make eval-escalate ARGS='--provider mock'               # examen de alerta, sin API
+make eval-escalate                                      # lo mismo con el LLM de .env (Groq)
 ```
 
-Escalate target: **all rojo cases escalate**; keep verde false positives low.  
-Results: `samples/eval_escalate_results.json` (gitignored).
+Meta del examen: **todo rojo debe alertar**; en verde, pocos falsos positivos. Amarillo se anota y **no** entra en la nota dura.  
+Resultados: `samples/eval_escalate_results.json` (no va a git).
 
 ---
 
-## Metrics (challenge §5) — after lift
+## Métricas (rúbrica §5) — después de levantar
 
-Instrumented in code. Numbers below are from a sample voice call; refresh with a live hang-up card (not part of cold start).
+Van instrumentadas en código. Los números de abajo son de **una** llamada de voz; se refrescan en la tarjeta al colgar (no forma parte del cold start).
 
-| Metric | Definition in this repo |
+| Métrica | Qué mide aquí |
 |---|---|
-| **E2E latency** (official) | STT final transcript → TTS audio start (`performance.now`) |
-| **Agent latency** (server) | Backend `latency_ms`: RAG + LLM + safety |
-| **Tokens** | Groq `usage` (or Gemini `usageMetadata`) |
-| **Invocations / RAG** | **1** model call and **1** retrieve per patient turn |
-| **Cost** | Groq Llama 3.3 70B list-price estimate; free tier ≈ $0 at runtime |
+| **Latencia de voz (oficial)** | El paciente deja de hablar → empieza el audio del agente |
+| **Latencia del turno** | Backend: búsqueda + modelo + reglas (`latency_ms`) |
+| **Tokens** | `usage` de Groq (o Gemini) |
+| **Llamadas al modelo / búsquedas** | **1** y **1** por cada mensaje del paciente |
+| **Costo** | Precio de lista Groq Llama 3.3 70B; en el plan gratis el runtime sale ≈ $0 |
 
-### Observed sample (10 mic turns)
+P50 = la mitad de los turnos fueron más rápidos que ese valor. P95 = el 95 % quedó por debajo.
 
-Groq `llama-3.3-70b-versatile` · Web Speech STT + TTS · caso día 7 crítico.
+### Muestra (10 turnos con micrófono)
 
-| Metric | Value |
+Groq `llama-3.3-70b-versatile` · voz del navegador para oír y para hablar · caso día 7 crítico.
+
+| Métrica | Valor |
 |---|---|
-| E2E P50 / P95 | **1136 / 1427 ms** |
-| Agent-turn P50 / P95 | **1044 / 1337 ms** |
-| Invocations / RAG per turn | **1 / 1** |
-| Tokens in / out | **8422 / 2208** |
-| Est. cost / call | **$0.0067 USD** |
+| Voz P50 / P95 | **1136 / 1427 ms** |
+| Turno (backend) P50 / P95 | **1044 / 1337 ms** |
+| Modelo / búsqueda por turno | **1 / 1** |
+| Tokens entrada / salida | **8422 / 2208** |
+| Costo estimado / llamada | **$0.0067 USD** |
 
-How to refresh: run a ≥10-turn voice call → End call → read P50/P95 on the summary card. More detail: [`docs/informe-tecnico.md`](./docs/informe-tecnico.md).
+Para refrescar: una llamada de ≥10 turnos con mic → Colgar → lee P50/P95 en el resumen. Detalle: [`docs/informe-tecnico.md`](./docs/informe-tecnico.md).
 
 ---
 
-## What is included
+## Qué hay en el código
 
-| Module | Role |
+| Pieza | Qué hace |
 |---|---|
-| RAG | Upload `.txt/.md/.pdf`, list, delete; local retrieval + citations |
-| Agent | Orchestration + safety + JSON contract |
-| Calls | History + hang-up summary |
-| Voice | Web Speech STT + TTS (Web Speech default; Kokoro / Piper optional) |
-| UI | Knowledge console + call interface |
+| Documentos | Subir `.txt/.md/.pdf`, listar, borrar; búsqueda local + citas |
+| Agente | Arma el turno + reglas de alerta + JSON |
+| Llamadas | Historial y resumen al colgar |
+| Voz | El navegador pasa voz a texto y, por defecto, lee la respuesta. Kokoro / Piper opt-in |
+| Pantalla | Llamada + Conocimiento |
 
-## Tests
+El dibujo y el mapa a archivos: [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+
+## Pruebas
 
 ```bash
-make test          # unit / API tests
-make smoke-app     # live smoke (backend must be running)
-make rehearse-jury # RAG · OOD · G5 · escalate · injection (backend up)
+make test          # unitarias / API
+make smoke-app     # humo en vivo (el backend tiene que estar arriba)
+make rehearse-jury # RAG · fuera de tema · G5 · alerta · inyección (backend arriba)
 ```
