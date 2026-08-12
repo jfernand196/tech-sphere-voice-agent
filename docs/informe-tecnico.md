@@ -56,7 +56,7 @@ El cuello de botella de un agente de voz no es “pensar más”: es el tiempo h
 - del silencio del paciente al audio del agente: **P50 1136 ms / P95 1427 ms**
 - del texto al JSON del turno (búsqueda + modelo + reglas): **P50 1044 ms / P95 1337 ms**
 
-Eso cabe en una conversación hablada. Temperatura **0.2** para que el JSON del turno (`reply`, `sources`, `escalate`, …) salga estable.
+Eso cabe en una conversación hablada. Temperatura **0.2** (un número de la API, de 0 a 1: más bajo = menos improvisación; así el JSON del turno —`reply`, `sources`, `escalate`— sale estable y no se rompe).
 
 La familia Llama en Groq está en la lista cerrada del reto. Anthropic/Claude **descalifica**; el factory no lo deja pasar.
 
