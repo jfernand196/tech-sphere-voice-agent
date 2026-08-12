@@ -1,54 +1,92 @@
-# Informe técnico — Tech Sphere Challenge 2026
+# Informe técnico — Agente de voz post-operatorio
 
-**Entregable 03.** Evidencia de proceso, configuración, prompts y declaración del modelo.  
+**Entregable 03.** Qué modelo usé, por qué, cómo lo configuré, cómo escribí los prompts, qué medí y qué se ve en el demo.
+
 **Repositorio:** https://github.com/jfernand196/tech-sphere-voice-agent  
 **Diagrama (entregable 02):** [`../ARCHITECTURE.md`](../ARCHITECTURE.md)  
-**Cold start:** [`../README.md`](../README.md)  
-**Fecha:** 2026-08-08
+**Cómo levantarlo (entregable 01):** [`../README.md`](../README.md)  
+**Fecha:** 2026-08-12
 
 ---
 
-## 1. Resumen ejecutivo
+## Cómo leer esto
 
-Se implementó un **agente de voz en el navegador** para seguimiento post-operatorio en español (Colombia). El paciente habla o escribe; el agente recupera conocimiento clínico (RAG), responde citando fuentes, decide si **escalar a un humano** y, al colgar, genera un **resumen estructurado**.
+Este archivo es **evidencia de proceso**, no el dibujo del sistema.
 
-La solución se levanta en **≤15 minutos** siguiendo únicamente el README (`make setup` → clave Groq → `make backend` / `make frontend` → `make verify`).
+| Si buscas… | Ve a… |
+|---|---|
+| Recuadros, un turno, alerta, capas | [`ARCHITECTURE.md`](../ARCHITECTURE.md) |
+| Levantar la app en ≤15 min | [`README.md`](../README.md) |
+| Modelo, prompts, métricas, capturas | Este documento |
+
+Cada afirmación de aquí se puede contrastar con un archivo del repo o con una captura. No reporto intenciones: reporto lo que corre.
 
 ---
 
-## 2. Declaración del modelo (obligatorio — G3)
+## 1. Qué construí
+
+Un **agente de voz en el navegador** para seguimiento post-operatorio en español de Colombia. No hay teléfono de hospital: el paciente habla o escribe en Chrome; el agente responde en voz.
+
+En cada mensaje hago tres cosas, siempre en este orden:
+
+1. Busco en los protocolos **cargados ahora** (no reabro el PDF original).
+2. El modelo propone qué decir y si cree que hay que avisar a un humano.
+3. Unas **reglas** releen las palabras del paciente. Si hay alarma, **obligan** la alerta aunque el modelo haya dicho que no.
+
+Al colgar se guarda un resumen: síntomas, si en **algún** turno hubo alerta, documentos usados, tiempos y costo.
+
+Se levanta en **≤15 minutos** solo con el README: `make setup` → clave Groq → `make backend` / `make frontend` → `make verify`.
+
+---
+
+## 2. Qué modelo usé y por qué (obligatorio)
 
 | Campo | Valor |
 |---|---|
-| **Familia permitida** | Meta **Llama** vía **Groq** (nivel gratuito) |
+| **Familia permitida** | Meta **Llama** por **Groq** (plan gratuito) |
 | **Modelo exacto** | `llama-3.3-70b-versatile` |
-| **Provider en código** | `LLM_PROVIDER=groq` |
-| **Adapter** | `backend/app/agent/llm_groq.py` |
-| **Factory** | `backend/app/agent/factory.py` (bloquea Anthropic/Claude) |
+| **Variable** | `LLM_PROVIDER=groq` |
+| **Dónde se llama** | `backend/app/agent/llm_groq.py` |
+| **Quién lo elige** | `backend/app/agent/factory.py` — si pones Anthropic/Claude, **se rechaza** |
 
-### Por qué lo elegí
+### Por qué este y no otro
 
-1. **Latencia para voz.** En un agente conversacional, el cuello de botella percibido es el tiempo hasta la respuesta hablada. En una llamada de voz real (10 turnos con mic, Web Speech STT+TTS, Groq Llama 70B) medí **e2e P50/P95 = 1136 / 1427 ms** y **api P50/P95 = 1044 / 1337 ms** (resumen al colgar; ver §8 y README).
-2. **Cumple la lista cerrada del reto.** Familia Llama en Groq está explícitamente permitida; Anthropic/Claude descalifica.
-3. **JSON estable con temperatura baja (0.2)** para el contrato `AgentTurnResponse`.
-4. **Alternativa evaluada y descartada como default:** Gemini Flash — mejor ventana de contexto para RAG largo, pero prioricé latencia de turno para la demo de voz. Queda cableada (`LLM_PROVIDER=gemini`) por si el corpus crece.
-5. **Local Llama/Phi (Ollama)** — lo descarté para la entrega principal por fricción de instalación en el cold start del jurado (≤15 min).
+El cuello de botella de un agente de voz no es “pensar más”: es el tiempo hasta que **empieza a hablar**. Elegí Groq Llama 70B porque, en una llamada real de 10 turnos con micrófono (Web Speech para oír y para hablar), medí:
+
+- del silencio del paciente al audio del agente: **P50 1136 ms / P95 1427 ms**
+- del texto al JSON del turno (búsqueda + modelo + reglas): **P50 1044 ms / P95 1337 ms**
+
+Eso cabe en una conversación hablada. Temperatura **0.2** para que el JSON del turno (`reply`, `sources`, `escalate`, …) salga estable.
+
+La familia Llama en Groq está en la lista cerrada del reto. Anthropic/Claude **descalifica**; el factory no lo deja pasar.
+
+### Alternativas que evalué y no dejé como default
+
+| Opción | Qué tiene a favor | Por qué no es el default |
+|---|---|---|
+| **Gemini Flash** | Ventana de contexto más larga si el corpus RAG crece | En voz prioricé latencia de turno. Queda cableado: `LLM_PROVIDER=gemini` |
+| **Llama o Phi en Ollama (local)** | Cero API, corre en laptop | El cold start de 15 min se rompe si hay que instalar y bajar un modelo local. No es el camino del README |
+
+El razonamiento clínico **no** se lo dejo solo al modelo. Las reglas de `safety.py` mandan después. El modelo propone el texto y un `escalate`; las reglas pueden cambiar el `escalate` a verdadero. Detalle en [`ARCHITECTURE.md`](../ARCHITECTURE.md) §3.
 
 ---
 
-## 3. Arquitectura (mapa al código)
+## 3. Mapa al código (sin repetir el diagrama)
 
-Ver diagrama completo en [`ARCHITECTURE.md`](../ARCHITECTURE.md). Resumen:
+El dibujo completo está en [`ARCHITECTURE.md`](../ARCHITECTURE.md). Aquí, qué pieza decide qué:
 
-| Pieza | Decisión | Dónde |
+| Pieza | Decisión | Archivo |
 |---|---|---|
-| Orquestación | FastAPI use-cases + ports/adapters | `backend/app/agent/`, `ports.py` |
-| Voz | Web Speech STT + selector TTS (Web Speech por defecto / Kokoro / Piper) | `frontend/src/speech.ts`, `serverTts.ts`, `backend/app/voice/` |
-| RAG | Store local hybrid (MiniLM 384-d cosine + BM25 → RRF), upload/delete, PDF | `backend/app/rag/store.py`, `embeddings.py` |
-| Escalate | Prompt + **guardrails post-LLM** (autoritativos) | `prompts.py` + `safety.py` |
-| Persistencia de llamadas | JSON en `DATA_DIR` | `backend/app/calls/` |
+| Orquestación del turno | 1 búsqueda + 1 llamada al modelo + reglas | `backend/app/agent/service.py` |
+| Contrato del JSON | Forma fija de cada turno | `backend/app/schemas.py` |
+| Voz | El navegador pasa voz a texto y, por defecto, lee la respuesta. Kokoro o Piper son opt-in | `frontend/src/speech.ts`, `backend/app/voice/` |
+| Documentos | Índice propio en disco (no Chroma ni Pinecone) | `backend/app/rag/store.py` |
+| Alerta a humano | El modelo propone; las reglas pueden imponer | `prompts.py` + `safety.py` |
+| Historial y resumen | JSON en `DATA_DIR` | `backend/app/calls/` |
 
-Principio de diseño: el LLM **no es la única fuente de verdad** para alarmas clínicas. Las reglas en `safety.py` pueden forzar `escalate=true` aunque el modelo diga lo contrario (asimetría: falso negativo es catastrófico).
+`AgentService` no tiene pegado el nombre Groq. Pide “un cliente de modelo”. Al arrancar, el factory le entrega Groq, Gemini o mock según `.env`. Cambiar de proveedor no reescribe el turno.
+
+Con documentos igual: el orquestador pide “busca 4 trozos”. No abre el PDF. Cuando subiste el archivo, ya se extrajo el texto, se partió y se guardó. En cada pregunta se busca **en esos trozos**.
 
 ---
 
@@ -65,9 +103,9 @@ DATA_DIR=./data
 EMBED_PROVIDER=fastembed
 ```
 
-Embeddings: `paraphrase-multilingual-MiniLM-L12-v2` vía **fastembed** (ONNX, sin torch). `make setup` ejecuta `make warm-embed` para pre-descargar el modelo (~220 MB). Rollback: `EMBED_PROVIDER=hash`.
+**Embeddings:** `paraphrase-multilingual-MiniLM-L12-v2` con **fastembed** (ONNX, sin PyTorch). `make setup` descarga el modelo (~220 MB) para que el primer arranque no se quede colgado. Si no hay red para bajarlo: `EMBED_PROVIDER=hash` (peor calidad; sirve para pruebas).
 
-Puertos: API **8001**, UI **5173**. Verificación: `make smoke-groq` y `make verify`.
+**Puertos:** API **8001**, UI **5173**. Comprobación: `make smoke-groq` y `make verify`.
 
 Dependencias fijadas: `backend/requirements.txt`, `frontend/package.json`.
 
@@ -75,116 +113,153 @@ Dependencias fijadas: `backend/requirements.txt`, `frontend/package.json`.
 
 ## 5. Prompts
 
-Fuente: `backend/app/agent/prompts.py`.
+Fuente completa: `backend/app/agent/prompts.py`.
 
-### System prompt (extracto)
+El modelo **no habla solo**. El system prompt le pide un JSON. La pantalla lee en voz el campo `reply`. Las citas van en `sources` para el clínico; **no se leen al paciente**.
+
+### Qué le pido al modelo (extracto)
 
 ```
 Eres un agente de voz de seguimiento post-operatorio en español (Colombia).
-… fundamentar solo en material de referencia interno; citar en sources (no en voz).
-Registro al paciente: 2–3 oraciones, sin jerga (RAG/LLM), sin repetir síntomas ni
-“ve al médico” en cada turno si ya escalaste; escalate_reason ≤120 caracteres.
-Escala ante signos de alarma (fiebre, infección, dolor no controlado, …).
+Fundamentar solo en el material de referencia de ESTE turno; citar en sources (no en voz).
+Reply: 2–3 oraciones, sin jerga interna (RAG, LLM, prompt), sin repetir síntomas
+ni “ve al médico” en cada turno si ya escalaste.
+escalate_reason: ≤120 caracteres, para el equipo, no para leérselo al paciente.
+Si el documento ya no está en el material de este turno, no lo saques del historial:
+declara el límite.
 JSON: reply, sources, patient_state, escalate, escalate_reason.
 ```
 
-(Ver `backend/app/agent/prompts.py` completo.)
+### Qué le paso en cada turno (`build_user_prompt`)
 
-### User prompt (estructura)
+Nombre, procedimiento, día post-operatorio, últimos **8** turnos (continuidad, **no** como protocolo), los **4** trozos recuperados y el mensaje actual.
 
-Por turno se inyecta: nombre, procedimiento, día post-op, historial reciente (≤8 turnos), chunks RAG y el mensaje actual (`build_user_prompt`).
+### Cómo los fui ajustando
 
-### Iteración de prompts / seguridad
-
-| Hallazgo | Ajuste |
+| Qué fallaba | Qué cambié |
 |---|---|
-| El modelo a veces no escalaba infecciones (secreción + fiebre) | Composites en `safety.py` (fiebre + herida; dolor alto + fiebre) |
-| Pedidos explícitos de médico | Keywords `quiero un doctor` / `hablar con un humano` fuerzan escalate |
-| Etiquetas kit rojo/verde | Harness `make eval-escalate` → hard accuracy **1.0** (mock y Groq) |
+| El modelo a veces no alertaba con secreción + fiebre | En `safety.py`: fiebre + herida, y dolor alto + fiebre, **obligan** alerta |
+| “Quiero un doctor” no siempre escalaba | Palabras clave `quiero un doctor` / `hablar con un humano` fuerzan alerta |
+| Tras borrar un PDF, repetía la indicación del historial | El prompt prohíbe usar el historial como protocolo; tiene que declarar el límite |
+| Etiquetas del kit (rojo / verde) | Harness `make eval-escalate` — ver §6 |
+
+Las reglas **no sustituyen** al modelo: en Groq/Gemini el modelo **siempre** corre y las reglas **siempre** corren después. No hay atajo que salte el modelo.
 
 ---
 
-## 6. Flujo de decisión (escalate)
+## 6. Cómo decido alertar a un humano
 
-1. RAG recupera `top_k=4` chunks.  
-2. LLM propone JSON con `escalate`.  
-3. `apply_safety_overrides` evalúa el mensaje del paciente; si hay alarma, **fuerza** escalate y sube severidad.  
-4. Al colgar, `CallService.end` agrega si hubo escalate en cualquier turno.
+En salud es peor **no alertar** cuando sí había que alertar, que alertar de más.
 
-Evaluación vs etiquetas oficiales del kit (colecistectomía):
+1. Recupero **4** trozos de lo que hay indexado ahora.
+2. El modelo propone el JSON, incluido `escalate`.
+3. `apply_safety_overrides` lee **las palabras del paciente**, no la opinión del modelo. Si hay alarma, fuerza `escalate=true`, anota el motivo y, si la gravedad venía “leve”, la sube a grave. **Nunca baja** una alarma.
+4. Al colgar, el resumen marca alerta si **cualquier** turno alertó.
 
-| Métrica | Resultado (Groq / mock) |
+Ejemplos que disparan las reglas: no poder respirar, sangrado, dolor 8–10/10, líquido amarillo, fiebre + herida, dolor alto + fiebre, “quiero un doctor”. Fiebre sola es más débil: no obliga por sí misma.
+
+### Examen automático (`make eval-escalate`)
+
+El kit oficial marca llamadas de ejemplo como **verde** (estable), **amarillo** (dudoso) o **rojo** (hay que alertar). El script pasa esas frases por el mismo pipeline.
+
+| Color | Qué significa para la nota |
 |---|---|
-| Rojo escalados | 2/2 |
-| Falsos positivos verde | 0/4 |
-| Hard accuracy | 1.0 |
+| **Rojo** | Debe alertar. Si no, el examen falla |
+| **Verde** | No debería alertar. Si alerta, es falso positivo |
+| **Amarillo** | Zona gris: se **anota**, pero **no entra** en la nota dura. Ni aprueba ni desaprueba |
+
+Muestra del kit (colecistectomía), Groq y mock:
+
+| Métrica | Resultado |
+|---|---|
+| Rojo que alertaron | 2/2 |
+| Falsos positivos en verde | 0/4 |
+| Nota dura (rojo + verde) | 1.0 |
+
+Amarillo no tiene meta de acierto. Esta muestra es pequeña: sirve para no afinar las reglas a ojo, no como ensayo clínico.
 
 ---
 
-## 7. Conocimiento vivo (G5)
+## 7. Conocimiento vivo (subir y olvidar)
 
-Desde la consola de administración (pestaña Knowledge):
+Desde la pestaña **Conocimiento**:
 
-1. **Upload** `.txt` / `.md` / `.pdf` → chunk + index local.  
-2. El agente **cita** el documento en `sources` cuando responde.  
-3. **Delete** → chunks eliminados; el agente deja de usar ese material.
+1. Subes `.txt`, `.md` o `.pdf` → se extrae texto, se parte, se guarda en el índice.
+2. En el siguiente turno el agente puede **citar** ese documento en `sources`.
+3. Lo borras → se quitan sus trozos. Si preguntas otra vez, ya no está. El prompt le prohíbe repetirlo desde el chat.
 
-Al arrancar el backend se siembra un protocolo genérico de alarma (`main.py` → `seed_sample_knowledge`) para que el cold start tenga RAG básico sin clonar el kit. Los PDFs oficiales se indexan opcionalmente con `make ingest-kit`.
+Las pestañas Llamada y Conocimiento siguen montadas (`App.tsx`): se puede subir, preguntar, borrar y preguntar **en la misma llamada**.
+
+Al arrancar, `main.py` carga un protocolo genérico de alarma para que el cold start tenga algo que citar sin clonar el kit. Los PDFs oficiales se indexan aparte con `make ingest-kit`.
+
+### Cómo busco (híbrido, no en paralelo)
+
+No uso Chroma ni Pinecone. En un mismo `search()`:
+
+1. **MiniLM** ordena por significado (vectores, coseno).
+2. **BM25** ordena por palabras. Sirve con nombres raros tipo ZETA-42.
+3. **RRF** mezcla por **puesto**, no por puntaje crudo: cada puesto aporta `1 / (60 + puesto)`. Los puntajes de MiniLM y BM25 no están en la misma escala; sumarlos mentiría.
+
+Devuelvo los **4** mejores. Si el modelo deja `sources` vacío o mal escrito, el backend **no inventa un PDF**: copia hasta los 2 primeros trozos que esa búsqueda sí encontró.
+
+Rutas: `/knowledge/` (subir, listar, borrar, consultar).
 
 ---
 
-## 8. Métricas observadas
+## 8. Métricas que medí
 
-Instrumentación: tokens Groq en `llm_groq.py`; E2E voz en frontend (`listenOnce.endedAt` → TTS `onstart`); agregados P50/P95 y costo en `CallSummary` al colgar. Los mismos números están en el README (§ Metrics). Durante el silencio de red: banner “Pensando…”; al hablar, “Escuchando…”; el paciente puede interrumpir el TTS (barge-in) con Hablar/Enviar.
+Instrumentación: tokens de Groq en `llm_groq.py`; tiempo de voz en el frontend (cuando termina el reconocimiento → cuando empieza el audio); P50/P95 y costo en el resumen al colgar. Los mismos números están en el README.
 
-**Muestra de voz (10 turnos con mic):** Groq `llama-3.3-70b-versatile` · Web Speech STT + Web Speech TTS · caso día 7 crítico · resumen al colgar.
+Durante la espera de red: “Pensando…”. Al hablar: “Escuchando…”. Se puede **interrumpir** la voz del agente (Hablar o Enviar).
 
-| Métrica | Valor | Método |
+**Muestra:** 10 turnos con micrófono · Groq `llama-3.3-70b-versatile` · Web Speech para oír y para hablar · caso día 7 crítico · números del resumen al colgar.
+
+| Métrica | Valor | Cómo se mide |
 |---|---|---|
-| Latencia E2E voz P50 | **1136 ms** | STT final → TTS audio start |
-| Latencia E2E voz P95 | **1427 ms** | Misma llamada |
-| Latencia turno agente P50 | **1044 ms** | Backend RAG + LLM + safety (`api`) |
-| Latencia turno agente P95 | **1337 ms** | Misma llamada |
-| Invocaciones LLM / turno | **1** (10 inv / 10 turnos) | Un completion por mensaje |
-| Consultas RAG / turno | **1** (10 RAG / 10 turnos) | `retrieve` antes del LLM |
-| Tokens in/out (llamada) | **8422 / 2208** | Totales Groq `usage` al colgar |
-| Costo estimado / llamada | **$0.0067 USD** | Precios lista Groq Llama 3.3 70B; free tier ≈ $0 en runtime |
+| Latencia voz P50 | **1136 ms** | El paciente deja de hablar → empieza el audio del agente |
+| Latencia voz P95 | **1427 ms** | Misma llamada |
+| Latencia del turno P50 | **1044 ms** | Búsqueda + modelo + reglas en el backend |
+| Latencia del turno P95 | **1337 ms** | Misma llamada |
+| Llamadas al modelo / turno | **1** (10 en 10 turnos) | Un completion por mensaje |
+| Búsquedas en documentos / turno | **1** (10 en 10 turnos) | Siempre antes del modelo |
+| Tokens entrada / salida (llamada) | **8422 / 2208** | `usage` de Groq al colgar |
+| Costo estimado / llamada | **$0.0067 USD** | Precio de lista Groq Llama 3.3 70B; en el plan gratis el runtime sale ≈ $0 |
 
-Referencia offline (`make eval-escalate`, 10 casos texto): agent-turn ~1.5 s / ~2.2 s P50/P95 — no sustituye la E2E de voz oficial.
+Referencia solo texto (`make eval-escalate`, 10 casos): turno ~1.5 s / ~2.2 s P50/P95. **No** sustituye la latencia de voz de la tabla de arriba.
 
 ---
 
 ## 9. Capturas del demo
 
-Archivos en [`docs/captures/`](./captures/). Caso: Ana Ángela Sánchez · día 7 · crítico. Doc G5: `samples/protocolo-zeta-42.txt`.
+Archivos en [`docs/captures/`](./captures/). Caso: Ana Ángela Sánchez · día 7 · crítico. Documento de prueba G5: `samples/protocolo-zeta-42.txt`.
 
 | # | Archivo | Qué demuestra |
 |---:|---|---|
-| 1 | [`01-call-setup.png`](./captures/01-call-setup.png) | Setup + caso kit |
-| 2 | [`02-sources.png`](./captures/02-sources.png) | RAG + citas |
-| 3 | [`03-knowledge-upload.png`](./captures/03-knowledge-upload.png) | Conocimiento vivo (upload) |
-| 4 | [`04-knowledge-delete.png`](./captures/04-knowledge-delete.png) | Olvido tras delete |
-| 5 | [`05-escalate.png`](./captures/05-escalate.png) | Decisión de alerta |
-| 6 | [`06-summary.png`](./captures/06-summary.png) | Call summary estructurado |
-| 7 | [`07-make-verify.png`](./captures/07-make-verify.png) | Cold start / LLM ready |
+| 1 | [`01-call-setup.png`](./captures/01-call-setup.png) | Inicio de llamada + caso del kit |
+| 2 | [`02-sources.png`](./captures/02-sources.png) | Respuesta clínica con citas |
+| 3 | [`03-knowledge-upload.png`](./captures/03-knowledge-upload.png) | Subir un documento y que quede indexado |
+| 4 | [`04-knowledge-delete.png`](./captures/04-knowledge-delete.png) | Tras borrar, el agente declara que ya no tiene esa indicación |
+| 5 | [`05-escalate.png`](./captures/05-escalate.png) | Alerta a humano (disnea / sangrado) |
+| 6 | [`06-summary.png`](./captures/06-summary.png) | Resumen al colgar |
+| 7 | [`07-make-verify.png`](./captures/07-make-verify.png) | Cold start: LLM listo e índice en pie |
 
 ### 1. Setup
 
 ![Setup llamada día 7 crítico](./captures/01-call-setup.png)
 
-### 2. RAG + sources
+### 2. Citas
 
 ![Turno con sources Protocolo herida](./captures/02-sources.png)
 
-### 3. Upload conocimiento vivo
+### 3. Subir conocimiento
 
 ![Knowledge con protocolo-zeta-42 indexado](./captures/03-knowledge-upload.png)
 
-### 4. Olvido tras delete
+### 4. Olvidar tras borrar
 
 ![Tras borrar ZETA-42 el agente declara el límite](./captures/04-knowledge-delete.png)
 
-### 5. Escalate
+### 5. Alerta
 
 ![Alerta humana por disnea y sangrado](./captures/05-escalate.png)
 
@@ -198,35 +273,36 @@ Archivos en [`docs/captures/`](./captures/). Caso: Ana Ángela Sánchez · día 
 
 ---
 
-## 10. Cómo se usó asistencia de IA en el proceso
+## 10. Cómo usé asistencia de IA
 
-- Scaffold inicial FastAPI + React y cables de RAG/voz.  
-- Iteración de `safety.py` contra etiquetas del kit.  
-- Documentación de cold start y este informe.  
-- Criterio humano: decisiones de modelo (Groq), asimetría clínica (guardrails), y calibración con `eval-escalate`.
+- Andamio inicial FastAPI + React y el cableado de documentos y voz.
+- Iterar `safety.py` contra las etiquetas del kit.
+- Cold start del README y este informe.
 
-El historial de commits en GitHub refleja el trabajo incremental (PRs de adapters, UX demo, eval, README).
+Lo que no delegué: elegir Groq por latencia, que las reglas manden después del modelo, y no dar por bueno un prompt hasta pasar `eval-escalate`.
 
----
-
-## 11. Riesgos y trabajo futuro
-
-| Riesgo | Mitigación actual | Si hubiera 2 semanas más |
-|---|---|---|
-| Alucinación clínica | Prompt “solo RAG” + hybrid MiniLM+BM25 | Chroma / BGE-M3 si el corpus crece mucho |
-| Falso negativo escalate | Guardrails post-LLM + eval rojo | Más casos capa2 ruidosa; umbrales por procedimiento |
-| Rate limit Groq free | Reintentos en eval; demo corta | Cola / Gemini fallback automático |
-| Calidad vs latencia TTS | Web Speech por defecto; Kokoro (calidad) y Piper (rápido local) opt-in | Streaming TTS / Whisper STT server-side |
+El historial de GitHub (PRs de adapters, UX, eval, README, arquitectura) es el rastro incremental.
 
 ---
 
-## 12. Checklist de entregables
+## 11. Riesgos y qué haría con dos semanas más
 
-| # | Entregable | Estado |
+| Riesgo | Qué hago hoy | Con dos semanas más |
 |---|---|---|
-| 01 | Repositorio público + README levantable | Sí |
-| 02 | Diagrama arquitectura + flujo de decisión | [`ARCHITECTURE.md`](../ARCHITECTURE.md) |
-| 03 | Este informe (modelo + por qué + prompts) | Este documento |
-| 04 | Video demo + 2 preguntas a cámara | [Drive (demo + Q1/Q2)](https://drive.google.com/file/d/1rjx0qMlYmtqqT44bNZotweVjgCvfxkXE/view?usp=sharing) · también en el README |
+| Inventar una indicación clínica | Prompt: solo el material de este turno + búsqueda MiniLM+BM25 | Índice tipo Chroma y embeddings BGE-M3 si el corpus crece mucho |
+| No alertar cuando sí había que alertar | Reglas después del modelo + examen rojo/verde | Más casos de la capa ruidosa del kit; umbrales por procedimiento |
+| Groq se satura (error 429) | Reintentos en el eval; demo corta | Cambio automático a Gemini si Groq falla |
+| Voz: calidad vs espera | Navegador por defecto; Kokoro (calidad) o Piper (local, rápido) si se descargaron | TTS en streaming; Whisper en servidor para oír mejor |
 
-Compuertas: G2 (cold start) documentada · G3 (modelo) declarada aquí · G4/G5 se demuestran en video y sesión en vivo.
+---
+
+## 12. Entregables
+
+| # | Entregable | Dónde |
+|---|---|---|
+| 01 | Repositorio público + README levantable | https://github.com/jfernand196/tech-sphere-voice-agent |
+| 02 | Arquitectura y flujo de decisión | [`ARCHITECTURE.md`](../ARCHITECTURE.md) |
+| 03 | Este informe (modelo, por qué, prompts, capturas) | Este documento |
+| 04 | Video demo + 2 preguntas a cámara | [Drive](https://drive.google.com/file/d/1rjx0qMlYmtqqT44bNZotweVjgCvfxkXE/view?usp=sharing) · también en el README |
+
+Compuertas: G2 (cold start) en el README · G3 (modelo) en §2 de este archivo · G4 (voz) y G5 (subir/olvidar) en el video y en las capturas §9.
