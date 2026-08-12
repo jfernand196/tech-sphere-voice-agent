@@ -218,8 +218,12 @@ El dibujo y el mapa a archivos: [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 ## Pruebas
 
-```bash
-make test          # unitarias / API
-make smoke-app     # humo en vivo (el backend tiene que estar arriba)
-make rehearse-jury # RAG · fuera de tema · G5 · alerta · inyección (backend arriba)
-```
+El backend tiene que estar arriba (`make backend`) para las dos últimas.
+
+| Comando | Para qué |
+|---|---|
+| `make test` | Pruebas automáticas de código (no habla con Groq en vivo). |
+| `make smoke-app` | Comprueba que API, búsqueda y un turno responden. |
+| `make rehearse-jury` | Ensayo por **texto** (no usa el micrófono): cita un doc, rechaza una pregunta rara, sube/borra un archivo en la misma llamada, alerta rojo / no alerta verde, y no obedece “ignora tus instrucciones”. |
+
+`rehearse-jury` no es el cold start ni el kit. Es para practicar antes de la sesión. La voz hay que probarla a mano en Chrome.
