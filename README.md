@@ -149,7 +149,9 @@ Cuando `make verify` pase y la UI esté abierta:
 
 La voz de salida por defecto es la del **navegador** (rápida). Kokoro / Piper son opt-in si corriste `make warm-kokoro` / `make warm-piper`.
 
-Al arrancar el backend se carga un protocolo genérico de alarma (alcanza para levantar y citar algo). Los PDFs oficiales del kit son optativos (siguiente sección).
+Cuando arrancas `make backend`, si no hay documentos, se indexa **solo** un texto corto que viene en el código (`protocolo-postop-generico.txt`: signos de alarma y cuidados básicos). Así `make verify` ve `rag_ok=true` y el agente ya puede citar algo, **sin** bajar los 107 PDFs del kit.
+
+Esos PDFs oficiales no se instalan solos. Si los quieres, la sección de abajo (`make kit-clone` + `make ingest-kit`). No hacen falta para los 15 minutos.
 
 ---
 
