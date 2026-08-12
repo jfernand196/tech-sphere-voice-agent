@@ -157,13 +157,29 @@ flowchart LR
   Drop --> Idx
 ```
 
-**Búsqueda híbrida:** no uso Chroma ni Pinecone. Guardo los trozos en un almacén propio (`LocalVectorStore.search`). MiniLM y BM25 **no corren en paralelo** (no hay dos hilos): en el mismo `search()` se calculan **uno detrás del otro** y luego se juntan.
+MiniLM **es** el embedding (lo corre fastembed). BM25 no usa esos números: cuenta palabras. RRF no busca: mezcla puestos. Groq corre **después**, con los 4 trozos ya elegidos.
 
-1. **MiniLM (significado):** convierte pregunta y trozos a vectores y ordena por parecido (coseno).
-2. **BM25 (palabras):** ordena por coincidencias de términos. Sirve con nombres raros tipo ZETA-42.
-3. **RRF (mezcla):** no se suman los puntajes crudos (no están en la misma escala). Cada puesto aporta `1 / (60 + puesto)`: el 1.º suma más que el 10.º. Gana quien queda bien ubicado en las dos listas, o muy arriba en una.
+```mermaid
+flowchart TB
+  subgraph reloj1["Reloj 1: subes el archivo"]
+    U["Subes txt, md o pdf"] --> T["Se extrae el texto y se parte en trozos"]
+    T --> M["MiniLM convierte cada trozo a números y los guarda"]
+    M --> D[(Trozos y números en disco)]
+  end
 
-Al final se devuelven los **4** mejores de esa mezcla.
+  subgraph reloj2["Reloj 2: el paciente pregunta"]
+    P["Llega el texto de este turno"] --> MQ["MiniLM convierte solo la pregunta a números"]
+    MQ --> C["Compara con los números ya guardados"]
+    D --> C
+    C --> B["BM25 cuenta palabras de la pregunta contra los trozos"]
+    B --> R["RRF mezcla las dos listas y deja 4 trozos"]
+    R --> G["Groq escribe el JSON del turno"]
+  end
+```
+
+En el reloj 1, BM25 y RRF **no corren**. El PDF no se vuelve a leer. En el reloj 2, MiniLM y BM25 van **uno detrás del otro** en el mismo `search()` (no hay dos hilos); RRF mezcla por puesto (`1 / (60 + puesto)`), no por puntaje crudo.
+
+`make setup` solo **descarga** MiniLM. No sube documentos ni busca.
 
 **Olvidar en la misma llamada:** las pestañas Llamada y Conocimiento siguen abiertas por debajo (`App.tsx`). Subes → preguntas → se cita el doc → borras → preguntas otra vez → ya no está en el índice y el agente declara que no tiene esa indicación.
 
