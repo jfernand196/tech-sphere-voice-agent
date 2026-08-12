@@ -103,7 +103,11 @@ DATA_DIR=./data
 EMBED_PROVIDER=fastembed
 ```
 
-**Embeddings:** `paraphrase-multilingual-MiniLM-L12-v2` con **fastembed** (ONNX, sin PyTorch). `make setup` descarga el modelo (~220 MB) para que el primer arranque no se quede colgado. Si no hay red para bajarlo: `EMBED_PROVIDER=hash` (peor calidad; sirve para pruebas).
+**Cómo convierte texto a números (embeddings):** eso es **solo MiniLM**, no la búsqueda completa. El modelo se llama `paraphrase-multilingual-MiniLM-L12-v2`. **fastembed** lo corre; **ONNX** es el formato (no hace falta instalar PyTorch). `make setup` lo baja una vez (~220 MB) para que el API no se quede esperando en el primer arranque.
+
+**BM25 no falta aquí:** no usa estos números. Ordena por palabras. MiniLM + BM25 + RRF es el `search()` del §7; esta clave de `.env` solo elige MiniLM o el atajo `hash`.
+
+Si no se puede bajar (sin internet, o para tests rápidos), en `.env` pones `EMBED_PROVIDER=hash`. Entonces **no descarga nada**: inventa esos números con una fórmula. La búsqueda por palabras (BM25) sigue; la de significado queda peor. No es el modo de la demo.
 
 **Puertos:** API **8001**, UI **5173**. Comprobación: `make smoke-groq` y `make verify`.
 
@@ -194,13 +198,23 @@ Al arrancar, `main.py` carga un protocolo genérico de alarma para que el cold s
 
 ### Cómo busco (híbrido, no en paralelo)
 
-No uso Chroma ni Pinecone. En un mismo `search()`:
+No uso Chroma ni Pinecone. Hay **dos ordenamientos distintos** y luego se mezclan. Solo MiniLM es embedding.
 
-1. **MiniLM** ordena por significado (vectores, coseno).
-2. **BM25** ordena por palabras. Sirve con nombres raros tipo ZETA-42.
-3. **RRF** mezcla por **puesto**, no por puntaje crudo: cada puesto aporta `1 / (60 + puesto)`. Los puntajes de MiniLM y BM25 no están en la misma escala; sumarlos mentiría.
+| Pieza | ¿Es embedding? | Qué hace |
+|---|---|---|
+| **MiniLM** (`paraphrase-multilingual-MiniLM-L12-v2`, lo corre **fastembed**) | **Sí.** Convierte pregunta y trozos a listas de números y mide qué tan parecidos son (coseno). | Encuentra “me arde la herida” cerca de “dolor en la incisión”, aunque no compartan las mismas palabras. |
+| **BM25** | **No.** No convierte a números de significado. Cuenta términos: qué tan a menudo aparece la palabra y si es rara. | Encuentra el código **ZETA-42** porque esas letras están en el texto. MiniLM a veces no lo prioriza. |
+| **RRF** | **No.** No busca. | Mira el **puesto** en las dos listas y arma una sola. Devuelvo los 4 mejores. |
 
-Devuelvo los **4** mejores. Si el modelo deja `sources` vacío o mal escrito, el backend **no inventa un PDF**: copia hasta los 2 primeros trozos que esa búsqueda sí encontró.
+**Cuándo corre cada uno** (MiniLM = el embedding; no es un paso extra). El dibujo está en [`ARCHITECTURE.md`](../ARCHITECTURE.md) §4.
+
+| Momento | MiniLM (embedding) | BM25 | RRF | Groq |
+|---|---|---|---|---|
+| **`make setup`** | Solo **descarga** el modelo (~220 MB). No busca. | No | No | No |
+| **Subes** un PDF/txt | Sí: convierte **cada trozo** a números y los **guarda** en disco. No se vuelve a abrir el PDF. | No | No | No |
+| **El paciente pregunta** (cada turno, `search()`) | Sí, pero solo la **pregunta**. Luego compara con los números ya guardados (coseno). | Sí: palabras de la pregunta contra el texto de los trozos | Sí: mezcla las dos listas y deja 4 | **Después:** recibe esos 4 trozos y escribe el JSON |
+
+Si el modelo deja `sources` vacío o mal escrito, el backend **no inventa un PDF**: copia hasta los 2 primeros trozos que esa búsqueda sí encontró.
 
 Rutas: `/knowledge/` (subir, listar, borrar, consultar).
 
@@ -275,13 +289,15 @@ Archivos en [`docs/captures/`](./captures/). Caso: Ana Ángela Sánchez · día 
 
 ## 10. Cómo usé asistencia de IA
 
-- Andamio inicial FastAPI + React y el cableado de documentos y voz.
-- Iterar `safety.py` contra las etiquetas del kit.
-- Cold start del README y este informe.
+Yo diseñé y construí la solución. En el IDE usé **Cursor** con **Grok 4.5 / Grok 4.6** (xAI) como asistente de código: boilerplate, variantes y borradores. **Revisé, corrí y acepté cada cambio.** El rastro está en los PRs de GitHub.
 
-Lo que no delegué: elegir Groq por latencia, que las reglas manden después del modelo, y no dar por bueno un prompt hasta pasar `eval-escalate`.
+Eso **no** es el modelo del agente. Grok no habla con el paciente. El modelo de la llamada es **Llama 3.3 70B en Groq** (`LLM_PROVIDER=groq`). Grok (xAI, el IDE) y Groq (la nube de Llama) no son lo mismo. Usar Grok como LLM del agente **descalifica** (G3); usarlo para escribir código está permitido y la rúbrica pide declararlo.
 
-El historial de GitHub (PRs de adapters, UX, eval, README, arquitectura) es el rastro incremental.
+Tres decisiones de diseño las tomé yo:
+
+1. **Groq + Llama**, no Gemini ni Ollama, porque en voz importa que el agente empiece a hablar pronto.
+2. **Las reglas van después del modelo.** Llama puede equivocarse; `safety.py` puede obligar la alerta.
+3. **Un prompt no está listo porque “suena bien”.** Tiene que pasar `make eval-escalate` (rojo alerta, verde no).
 
 ---
 
@@ -291,8 +307,10 @@ El historial de GitHub (PRs de adapters, UX, eval, README, arquitectura) es el r
 |---|---|---|
 | Inventar una indicación clínica | Prompt: solo el material de este turno + búsqueda MiniLM+BM25 | Índice tipo Chroma y embeddings BGE-M3 si hay muchos más PDFs |
 | No alertar cuando sí había que alertar | Reglas después del modelo + examen rojo/verde | Más casos de la capa ruidosa del kit; umbrales por procedimiento |
-| Groq se satura (error 429) | Reintentos en el eval; demo corta | Cambio automático a Gemini si Groq falla |
+| Groq dice **429** (demasiadas peticiones: el plan gratis se llena) | En `eval-escalate` espero y reintento. En la demo hago una llamada corta para no gastar la cuota. Si pasa en vivo, se puede cambiar a mano: `LLM_PROVIDER=gemini` | Que el sistema pase **solo** a Gemini si Groq responde 429. Hoy eso **no** está automático |
 | Voz: calidad vs espera | Navegador por defecto; Kokoro (calidad) o Piper (local, rápido) si se descargaron | TTS en streaming; Whisper en servidor para oír mejor |
+
+**429:** Groq responde “demasiadas peticiones” cuando el plan gratis se llena. No es un fallo del agente. Hoy: el eval espera y reintenta; la demo es corta; si pasa en la sesión, se cambia a Gemini **a mano** en `.env`. Pasar solo a Gemini si llega un 429 **no está implementado**; es lo que haría con más tiempo.
 
 ---
 
