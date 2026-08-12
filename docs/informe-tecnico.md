@@ -56,7 +56,7 @@ El cuello de botella de un agente de voz no es “pensar más”: es el tiempo h
 - del silencio del paciente al audio del agente: **P50 1136 ms / P95 1427 ms**
 - del texto al JSON del turno (búsqueda + modelo + reglas): **P50 1044 ms / P95 1337 ms**
 
-Eso cabe en una conversación hablada. Temperatura **0.2** para que el JSON del turno (`reply`, `sources`, `escalate`, …) salga estable.
+Eso cabe en una conversación hablada. Temperatura **0.2** (un número de la API, de 0 a 1: más bajo = menos improvisación; así el JSON del turno —`reply`, `sources`, `escalate`— sale estable y no se rompe).
 
 La familia Llama en Groq está en la lista cerrada del reto. Anthropic/Claude **descalifica**; el factory no lo deja pasar.
 
@@ -64,7 +64,7 @@ La familia Llama en Groq está en la lista cerrada del reto. Anthropic/Claude **
 
 | Opción | Qué tiene a favor | Por qué no es el default |
 |---|---|---|
-| **Gemini Flash** | Ventana de contexto más larga si el corpus RAG crece | En voz prioricé latencia de turno. Queda cableado: `LLM_PROVIDER=gemini` |
+| **Gemini Flash** | Aguanta más texto en una sola llamada. Serviría si un hospital carga muchos más protocolos y más adelante le paso más trozos al modelo (hoy igual mando 4) | En voz prioricé que el agente empiece a hablar pronto. Queda cableado: `LLM_PROVIDER=gemini` |
 | **Llama o Phi en Ollama (local)** | Cero API, corre en laptop | El cold start de 15 min se rompe si hay que instalar y bajar un modelo local. No es el camino del README |
 
 El razonamiento clínico **no** se lo dejo solo al modelo. Las reglas de `safety.py` mandan después. El modelo propone el texto y un `escalate`; las reglas pueden cambiar el `escalate` a verdadero. Detalle en [`ARCHITECTURE.md`](../ARCHITECTURE.md) §3.
@@ -289,7 +289,7 @@ El historial de GitHub (PRs de adapters, UX, eval, README, arquitectura) es el r
 
 | Riesgo | Qué hago hoy | Con dos semanas más |
 |---|---|---|
-| Inventar una indicación clínica | Prompt: solo el material de este turno + búsqueda MiniLM+BM25 | Índice tipo Chroma y embeddings BGE-M3 si el corpus crece mucho |
+| Inventar una indicación clínica | Prompt: solo el material de este turno + búsqueda MiniLM+BM25 | Índice tipo Chroma y embeddings BGE-M3 si hay muchos más PDFs |
 | No alertar cuando sí había que alertar | Reglas después del modelo + examen rojo/verde | Más casos de la capa ruidosa del kit; umbrales por procedimiento |
 | Groq se satura (error 429) | Reintentos en el eval; demo corta | Cambio automático a Gemini si Groq falla |
 | Voz: calidad vs espera | Navegador por defecto; Kokoro (calidad) o Piper (local, rápido) si se descargaron | TTS en streaming; Whisper en servidor para oír mejor |
