@@ -157,15 +157,17 @@ Esos PDFs oficiales no se instalan solos. Si los quieres, la sección de abajo (
 
 ## Optativo — kit oficial (no entra en el cold start)
 
-El kit del reto es **otro repo**: PDFs clínicos y Excel de pacientes (verde / amarillo / rojo). No hace falta para levantar la app. Sirve si quieres citar guías oficiales, llenar el menú de pacientes, o examinar las alertas contra las etiquetas del kit.
+El kit del reto es **otro repo**: PDFs clínicos y Excel de pacientes (verde / amarillo / rojo). No hace falta para levantar la app. Sirve si quieres citar guías oficiales, regenerar el menú de pacientes, o examinar las alertas contra las etiquetas del kit.
 
-| Comando | Para qué |
-|---|---|
-| `make kit-clone` | Baja ese repo a `official-kit/` (~127 MB). No se sube a git. |
-| `make ingest-kit ARGS='--scenario cholecystitis --limit 8'` | Parte **8 PDFs** de colecistectomía y los mete en el índice (además del texto corto del arranque). |
-| `make export-demo` | Arma la lista de pacientes de la pestaña Llamada a partir del Excel. |
-| `make eval-escalate ARGS='--provider mock'` | Examen de alerta **sin Groq**: frases del kit → ¿alertó o no? |
-| `make eval-escalate` | Lo mismo, pero con Llama en Groq (gasta cuota; puede dar 429). |
+**Primero** `make kit-clone`. Sin esa carpeta `official-kit/`, los comandos de abajo fallan. El menú de Ana día 7 **ya viene** en git (`samples/demo_patients.json`); `export-demo` solo si quieres volver a armarlo desde el Excel.
+
+| Comando | Para qué | Requiere |
+|---|---|---|
+| `make kit-clone` | Baja ese repo a `official-kit/` (~127 MB). No se sube a git. | Red. Una vez. |
+| `make ingest-kit ARGS='--scenario cholecystitis --limit 8'` | Parte **8 PDFs** de colecistectomía y los mete en el índice (además del texto corto del arranque). | `kit-clone` + backend/setup |
+| `make export-demo` | Reescribe `samples/demo_patients.json` desde el Excel. | `kit-clone` |
+| `make eval-escalate ARGS='--provider mock'` | Examen de alerta **sin Groq**: frases del kit → ¿alertó o no? | `kit-clone` |
+| `make eval-escalate` | Lo mismo, pero con Llama en Groq (gasta cuota; puede dar 429). | `kit-clone` + clave Groq |
 
 Meta del examen: **todo rojo debe alertar**; en verde, pocos falsos positivos. Amarillo se anota y **no** entra en la nota dura.  
 Resultados: `samples/eval_escalate_results.json` (no va a git).
