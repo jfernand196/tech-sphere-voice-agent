@@ -291,8 +291,6 @@ Archivos en [`docs/captures/`](./captures/). Caso: Ana Ángela Sánchez · día 
 
 Yo diseñé y construí la solución. En el IDE usé **Cursor** con **Grok 4.5 / Grok 4.6** (xAI) como asistente de código: boilerplate, variantes y borradores. **Revisé, corrí y acepté cada cambio.** El rastro está en los PRs de GitHub.
 
-Eso **no** es el modelo del agente. Grok no habla con el paciente. El modelo de la llamada es **Llama 3.3 70B en Groq** (`LLM_PROVIDER=groq`). Grok (xAI, el IDE) y Groq (la nube de Llama) no son lo mismo. Usar Grok como LLM del agente **descalifica** (G3); usarlo para escribir código está permitido y la rúbrica pide declararlo.
-
 Tres decisiones de diseño las tomé yo:
 
 1. **Groq + Llama**, no Gemini ni Ollama, porque en voz importa que el agente empiece a hablar pronto.
