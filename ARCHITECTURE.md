@@ -132,7 +132,13 @@ flowchart TD
 
 Ejemplos en código: no poder respirar, sangrado, dolor 8–10/10, fiebre alta, líquido amarillo, fiebre + herida, dolor alto + fiebre, “quiero un doctor”.
 
-**Prueba automática (`make eval-escalate`):** el kit oficial marca llamadas de ejemplo como verde (estable), amarillo (dudoso) o rojo (hay que alertar). El script pasa esas frases por el mismo pipeline y comprueba: rojo debe alertar; verde no debería; amarillo se anota. En esa muestra, rojo y verde salieron bien. No es entrenamiento: es un examen para no afinar las reglas a ojo.
+**Prueba automática (`make eval-escalate`):** el kit oficial marca llamadas de ejemplo como verde (estable), amarillo (dudoso) o rojo (hay que alertar). El script pasa esas frases por el mismo pipeline.
+
+- **Rojo** debe alertar. Si no, el examen falla.
+- **Verde** no debería alertar. Si alerta, cuenta como falso positivo.
+- **Amarillo** es zona gris: se **anota** si alertó o no, pero **no entra** en la nota dura. Ni aprueba ni desaprueba.
+
+En la muestra del informe: rojo 2/2 alertaron, verde 0/4 falsos positivos (por eso “rojo y verde salieron bien”). Amarillo no tiene meta de acierto.
 
 ---
 
@@ -151,11 +157,13 @@ flowchart LR
   Drop --> Idx
 ```
 
-**Búsqueda híbrida:** no uso Chroma ni Pinecone. Guardo los trozos en un almacén propio.
+**Búsqueda híbrida:** no uso Chroma ni Pinecone. Guardo los trozos en un almacén propio (`LocalVectorStore.search`). MiniLM y BM25 **no corren en paralelo** (no hay dos hilos): en el mismo `search()` se calculan **uno detrás del otro** y luego se juntan.
 
-1. **Por significado:** MiniLM convierte texto a números y busca lo parecido.
-2. **Por palabras:** BM25 encuentra coincidencias (útil con nombres raros tipo ZETA-42).
-3. **Se mezclan** los dos rankings.
+1. **MiniLM (significado):** convierte pregunta y trozos a vectores y ordena por parecido (coseno).
+2. **BM25 (palabras):** ordena por coincidencias de términos. Sirve con nombres raros tipo ZETA-42.
+3. **RRF (mezcla):** no se suman los puntajes crudos (no están en la misma escala). Cada puesto aporta `1 / (60 + puesto)`: el 1.º suma más que el 10.º. Gana quien queda bien ubicado en las dos listas, o muy arriba en una.
+
+Al final se devuelven los **4** mejores de esa mezcla.
 
 **Olvidar en la misma llamada:** las pestañas Llamada y Conocimiento siguen abiertas por debajo (`App.tsx`). Subes → preguntas → se cita el doc → borras → preguntas otra vez → ya no está en el índice y el agente declara que no tiene esa indicación.
 
@@ -235,7 +243,7 @@ flowchart TB
 
 `AgentService` no tiene pegado el nombre Groq. Pide “un cliente de modelo”. Al arrancar, `factory.py` le entrega Groq, Gemini o mock según `.env`. Cambiar de proveedor no reescribe el turno: solo cambia quién está detrás del contrato.
 
-Lo mismo con documentos: el orquestador pide “busca 4 trozos”; el almacén en disco es quien lee los archivos.
+Lo mismo con documentos. El orquestador no abre el PDF ni el `.txt`: solo pide “busca 4 trozos”. Quien responde es el índice (`store.py`). Cuando subiste el archivo, ya se extrajo el texto, se partió y se guardó en disco. En cada pregunta se busca **en esos trozos**, no se vuelve a leer el original.
 
 ---
 
