@@ -96,7 +96,7 @@ En salud el **falso negativo** (no alertar cuando sí había que alertar) pesa m
 
 ```mermaid
 flowchart TD
-  Msg["Mensaje del paciente"] --> RAG["1. RAG: buscar 4 fragmentos<br/>en el índice de este instante"]
+  Msg["Mensaje del paciente"] --> RAG["1. RAG: de los protocolos que hay cargados ahora,<br/>traer los 4 trozos más parecidos a lo que dijo"]
   RAG --> LLM["2. LLM: JSON con reply + escalate"]
   LLM --> Rules{"3. safety.assess_message<br/>keywords + cuadros compuestos"}
   Rules -->|alarma o pide doctor| Force["escalate = true<br/>reason de las reglas<br/>severidad sube si hace falta"]
