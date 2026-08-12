@@ -2,7 +2,7 @@
 
 Agente de voz en el navegador para seguimiento post-operatorio en español de Colombia. El paciente habla o escribe; el agente busca en protocolos, cita la fuente, puede **alertar a un humano** y al colgar deja un resumen.
 
-Se levanta en **≤15 minutos** solo con la sección *Cold start*. El modelo de la llamada es **Llama 3.3 70B en Groq**. Micrófono, subir/borrar documentos y alerta son **después** del reloj.
+Se levanta en **≤15 minutos** solo con la sección *Cold start*. El modelo de la llamada es **Llama 3.3 70B en Groq**.
 
 | | |
 |---|---|
@@ -41,17 +41,17 @@ Este es el **único** camino para parar el reloj de G2. De arriba a abajo.
 
 ### Antes del reloj (2–3 min)
 
-Instala una vez en la máquina (herramientas, no la app):
+Instala una vez en la máquina (herramientas, no la app). Si `comprobar` ya imprime un número, no instales de nuevo.
 
-| Herramienta | Versión | Comprobar |
-|---|---|---|
-| macOS o Linux | — | — |
-| Git | reciente | `git --version` |
-| Make | cualquiera | `make --version` |
-| Python | **3.12** (3.10+ vale) | `python3.12 --version` |
-| Node.js | **18+** | `node -v` |
-| npm | viene con Node | `npm -v` |
-| Chrome o Edge | reciente | micrófono / Web Speech |
+| Herramienta | Versión | Comprobar | Si falta |
+|---|---|---|---|
+| macOS o Linux | — | — | Es el sistema. Este README no cubre Windows. |
+| Git | reciente | `git --version` | **Mac:** `xcode-select --install` (trae Git y Make). **Linux:** `sudo apt install git` |
+| Make | cualquiera | `make --version` | **Mac:** lo mismo (`xcode-select --install`). **Linux:** `sudo apt install make` |
+| Python | **3.12** (3.10+ vale) | `python3.12 --version` | **Mac:** [python.org](https://www.python.org/downloads/) o `brew install python@3.12`. **Linux:** `sudo apt install python3.12` |
+| Node.js | **18+** | `node -v` | **Mac:** [nodejs.org](https://nodejs.org/) o `brew install node`. **Linux:** `sudo apt install nodejs npm` (que sea 18+) |
+| npm | viene con Node | `npm -v` | No se instala aparte: va con Node. |
+| Chrome o Edge | reciente | micrófono / Web Speech | [Chrome](https://www.google.com/chrome/) o [Edge](https://www.microsoft.com/edge) |
 
 **Clave gratis:** https://console.groq.com/keys — tenla lista para pegar. No hace falta plan de pago.
 
@@ -102,8 +102,7 @@ status=ok llm_ready=true rag_ok=true docs=… chunks=… llm=groq/llama-3.3-70b-
 
 Abre **http://127.0.0.1:5173** — pestañas Llamada y Conocimiento.
 
-Eso es “solución en pie y accesible” para G2.  
-**No** gastes reloj en micrófono, subidas ni alerta: eso es la demo **después** de levantar.
+Eso es “solución en pie y accesible” para G2.
 
 ### Si algo falla
 
@@ -150,19 +149,23 @@ Cuando `make verify` pase y la UI esté abierta:
 
 La voz de salida por defecto es la del **navegador** (rápida). Kokoro / Piper son opt-in si corriste `make warm-kokoro` / `make warm-piper`.
 
-Al arrancar el backend se carga un protocolo genérico de alarma (alcanza para levantar y citar algo). Los PDFs oficiales del kit son optativos (siguiente sección).
+Cuando arrancas `make backend`, si no hay documentos, se indexa **solo** un texto corto que viene en el código (`protocolo-postop-generico.txt`: signos de alarma y cuidados básicos). Así `make verify` ve `rag_ok=true` y el agente ya puede citar algo, **sin** bajar los 107 PDFs del kit.
+
+Esos PDFs oficiales no se instalan solos. Si los quieres, la sección de abajo (`make kit-clone` + `make ingest-kit`). No hacen falta para los 15 minutos.
 
 ---
 
 ## Optativo — kit oficial (no entra en el cold start)
 
-```bash
-make kit-clone                                          # ~127MB, no va a git
-make ingest-kit ARGS='--scenario cholecystitis --limit 8'
-make export-demo                                        # refresca el catálogo de pacientes
-make eval-escalate ARGS='--provider mock'               # examen de alerta, sin API
-make eval-escalate                                      # lo mismo con el LLM de .env (Groq)
-```
+El kit del reto es **otro repo**: PDFs clínicos y Excel de pacientes (verde / amarillo / rojo). No hace falta para levantar la app. Sirve si quieres citar guías oficiales, llenar el menú de pacientes, o examinar las alertas contra las etiquetas del kit.
+
+| Comando | Para qué |
+|---|---|
+| `make kit-clone` | Baja ese repo a `official-kit/` (~127 MB). No se sube a git. |
+| `make ingest-kit ARGS='--scenario cholecystitis --limit 8'` | Parte **8 PDFs** de colecistectomía y los mete en el índice (además del texto corto del arranque). |
+| `make export-demo` | Arma la lista de pacientes de la pestaña Llamada a partir del Excel. |
+| `make eval-escalate ARGS='--provider mock'` | Examen de alerta **sin Groq**: frases del kit → ¿alertó o no? |
+| `make eval-escalate` | Lo mismo, pero con Llama en Groq (gasta cuota; puede dar 429). |
 
 Meta del examen: **todo rojo debe alertar**; en verde, pocos falsos positivos. Amarillo se anota y **no** entra en la nota dura.  
 Resultados: `samples/eval_escalate_results.json` (no va a git).
