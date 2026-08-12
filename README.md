@@ -41,17 +41,17 @@ Este es el **único** camino para parar el reloj de G2. De arriba a abajo.
 
 ### Antes del reloj (2–3 min)
 
-Instala una vez en la máquina (herramientas, no la app):
+Instala una vez en la máquina (herramientas, no la app). Si `comprobar` ya imprime un número, no instales de nuevo.
 
-| Herramienta | Versión | Comprobar |
-|---|---|---|
-| macOS o Linux | — | — |
-| Git | reciente | `git --version` |
-| Make | cualquiera | `make --version` |
-| Python | **3.12** (3.10+ vale) | `python3.12 --version` |
-| Node.js | **18+** | `node -v` |
-| npm | viene con Node | `npm -v` |
-| Chrome o Edge | reciente | micrófono / Web Speech |
+| Herramienta | Versión | Comprobar | Si falta |
+|---|---|---|---|
+| macOS o Linux | — | — | Es el sistema. Este README no cubre Windows. |
+| Git | reciente | `git --version` | **Mac:** `xcode-select --install` (trae Git y Make). **Linux:** `sudo apt install git` |
+| Make | cualquiera | `make --version` | **Mac:** lo mismo (`xcode-select --install`). **Linux:** `sudo apt install make` |
+| Python | **3.12** (3.10+ vale) | `python3.12 --version` | **Mac:** [python.org](https://www.python.org/downloads/) o `brew install python@3.12`. **Linux:** `sudo apt install python3.12` |
+| Node.js | **18+** | `node -v` | **Mac:** [nodejs.org](https://nodejs.org/) o `brew install node`. **Linux:** `sudo apt install nodejs npm` (que sea 18+) |
+| npm | viene con Node | `npm -v` | No se instala aparte: va con Node. |
+| Chrome o Edge | reciente | micrófono / Web Speech | [Chrome](https://www.google.com/chrome/) o [Edge](https://www.microsoft.com/edge) |
 
 **Clave gratis:** https://console.groq.com/keys — tenla lista para pegar. No hace falta plan de pago.
 
@@ -102,8 +102,7 @@ status=ok llm_ready=true rag_ok=true docs=… chunks=… llm=groq/llama-3.3-70b-
 
 Abre **http://127.0.0.1:5173** — pestañas Llamada y Conocimiento.
 
-Eso es “solución en pie y accesible” para G2.  
-**No** gastes reloj en micrófono, subidas ni alerta: eso es la demo **después** de levantar.
+Eso es “solución en pie y accesible” para G2.
 
 ### Si algo falla
 
