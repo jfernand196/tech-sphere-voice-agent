@@ -2,7 +2,7 @@
 
 Agente de voz en el navegador para seguimiento post-operatorio en español de Colombia. El paciente habla o escribe; el agente busca en protocolos, cita la fuente, puede **alertar a un humano** y al colgar deja un resumen.
 
-Se levanta en **≤15 minutos** solo con la sección *Cold start*. El modelo de la llamada es **Llama 3.3 70B en Groq**. Micrófono, subir/borrar documentos y alerta son **después** del reloj.
+Se levanta en **≤15 minutos** solo con la sección *Cold start*. El modelo de la llamada es **Llama 3.3 70B en Groq**.
 
 | | |
 |---|---|
