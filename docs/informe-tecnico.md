@@ -319,6 +319,6 @@ Tres decisiones de diseño las tomé yo:
 | 01 | Repositorio público + README levantable | https://github.com/jfernand196/tech-sphere-voice-agent |
 | 02 | Arquitectura y flujo de decisión | [`ARCHITECTURE.md`](../ARCHITECTURE.md) |
 | 03 | Este informe (modelo, por qué, prompts, capturas) | Este documento |
-| 04 | Video demo + 2 preguntas a cámara | [Drive](https://drive.google.com/file/d/1rjx0qMlYmtqqT44bNZotweVjgCvfxkXE/view?usp=sharing) · también en el README |
+| 04 | Video demo + 2 preguntas a cámara | [Drive](https://drive.google.com/file/d/1gJvgL6lrabKiCKznm13CEPp562iI4eQy/view?usp=sharing) · también en el README |
 
 Compuertas: G2 (cold start) en el README · G3 (modelo) en §2 de este archivo · G4 (voz) y G5 (subir/olvidar) en el video y en las capturas §9.

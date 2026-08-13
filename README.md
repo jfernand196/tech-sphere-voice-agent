@@ -28,7 +28,7 @@ Rúbrica: [`docs/challenge/`](./docs/challenge/).
 | 01 | Repositorio + este README | https://github.com/jfernand196/tech-sphere-voice-agent |
 | 02 | Arquitectura y flujo de decisión | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/ARCHITECTURE.md |
 | 03 | Informe técnico | https://github.com/jfernand196/tech-sphere-voice-agent/blob/main/docs/informe-tecnico.md |
-| 04 | Video demo + 2 preguntas a cámara | https://drive.google.com/file/d/1rjx0qMlYmtqqT44bNZotweVjgCvfxkXE/view?usp=sharing |
+| 04 | Video demo + 2 preguntas a cámara | https://drive.google.com/file/d/1gJvgL6lrabKiCKznm13CEPp562iI4eQy/view?usp=sharing |
 
 ---
 
