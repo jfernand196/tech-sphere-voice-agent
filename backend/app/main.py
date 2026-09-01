@@ -41,19 +41,16 @@ def seed_sample_knowledge() -> None:
         None,
     )
     # Re-seed if missing, outdated, or catalog exists but chunks were wiped (dim swap).
-    if seed and seed.metadata.get("seed_version") == 2 and seed.chunk_count > 0:
+    if seed and seed.metadata.get("seed_version") == 3 and seed.chunk_count > 0:
         return
     if seed:
         ks.delete(seed.doc_id)
-    # Don't force-insert if the user already has other knowledge.
-    if ks.list_documents():
-        return
 
     ks.ingest_text(
         title="Protocolo post-operatorio genérico",
         filename="protocolo-postop-generico.txt",
         text=SAMPLE_PROTOCOL,
-        metadata={"seed": True, "seed_version": 2},
+        metadata={"seed": True, "seed_version": 3},
     )
 
 

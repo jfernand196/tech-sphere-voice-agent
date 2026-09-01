@@ -6,6 +6,7 @@ from typing import Optional
 from app.config import Settings
 from app.rag.embeddings import Embedder, get_embedder
 from app.rag.extract import extract_text
+from app.rag.rank import candidate_pool_size, rewrite_followup_query, select_citations
 from app.rag.store import DocumentRecord, LocalVectorStore
 from app.schemas import DocumentInfo, KnowledgeChunk
 
@@ -164,8 +165,11 @@ class KnowledgeService:
         return rebuilt
 
     def retrieve(self, query: str, top_k: int = 4) -> list[KnowledgeChunk]:
-        hits = self.store.search(query, top_k=top_k)
-        return [
+        raw = self.store.search(
+            rewrite_followup_query(query),
+            top_k=candidate_pool_size(query, top_k),
+        )
+        hits = [
             KnowledgeChunk(
                 chunk_id=chunk.chunk_id,
                 doc_id=chunk.doc_id,
@@ -173,8 +177,9 @@ class KnowledgeService:
                 text=chunk.text,
                 score=round(score, 4),
             )
-            for chunk, score in hits
+            for chunk, score in raw
         ]
+        return select_citations(hits, query, top_k)
 
     @staticmethod
     def _to_info(record: DocumentRecord) -> DocumentInfo:

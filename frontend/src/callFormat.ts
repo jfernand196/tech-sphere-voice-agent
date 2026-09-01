@@ -1,7 +1,5 @@
 import type { AgentTurnResponse, CallSummary, ChatItem } from "./types";
 
-export type TurnMetricBit = { title: string; text: string };
-
 /** Map API turn (+ optional E2E ms) → chat bubble — single mapping site. */
 export function agentChatItemFromTurn(
   turn: AgentTurnResponse,
@@ -18,12 +16,15 @@ export function agentChatItemFromTurn(
     e2e_latency_ms: e2eMs,
     tokens_in: turn.tokens_in,
     tokens_out: turn.tokens_out,
+    model_id: turn.model_id,
   };
 }
 
 export function formatPairMs(p50?: number | null, p95?: number | null): string {
   return `${p50 ?? "—"}/${p95 ?? "—"} ms`;
 }
+
+export type TurnMetricBit = { title: string; text: string };
 
 type TurnMetricsSource = Pick<
   ChatItem,

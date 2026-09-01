@@ -5,7 +5,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from app.agent.safety import severity_rank
+from app.agent.safety import humanize_symptoms, severity_rank
 from app.metrics import rollup_call_metrics
 from app.schemas import (
     AgentTurnResponse,
@@ -66,7 +66,7 @@ def _fold_clinical(messages: list[CallMessage]) -> _ClinicalFold:
             sources_used[src.chunk_id] = src
 
     return _ClinicalFold(
-        symptoms=symptoms,
+        symptoms=humanize_symptoms(symptoms),
         severity=severity,
         escalate=escalate,
         escalate_reason=escalate_reason,
@@ -168,12 +168,21 @@ class CallService:
         return record
 
 
+_SEVERITY_ES = {
+    Severity.none: "ninguna",
+    Severity.mild: "leve",
+    Severity.moderate: "moderada",
+    Severity.severe: "severa",
+}
+
+
 def _summary_text(record: CallRecord, clinical: _ClinicalFold) -> str:
     symptom_txt = ", ".join(clinical.symptoms) if clinical.symptoms else "ninguno reportado"
     alert = "SÍ" if clinical.escalate else "NO"
     reason = f" Motivo: {clinical.escalate_reason}." if clinical.escalate_reason else ""
+    severity_es = _SEVERITY_ES.get(clinical.severity, clinical.severity.value)
     return (
         f"Llamada de seguimiento post-operatorio para {record.patient_name} "
         f"tras {record.procedure}. Síntomas: {symptom_txt}. "
-        f"Severidad estimada: {clinical.severity.value}. Alerta a humano: {alert}.{reason}"
+        f"Severidad estimada: {severity_es}. Alerta a humano: {alert}.{reason}"
     )

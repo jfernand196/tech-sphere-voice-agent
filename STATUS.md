@@ -1,7 +1,7 @@
 # STATUS — Tech Sphere Voice Agent (handoff for humans & agents)
 
 > **Read this file first** before changing code.  
-> Last updated: **2026-08-08** (UI locale ES/EN; agent language stays Spanish)  
+> Last updated: **2026-08-31** (skip exhausted Flash models for the rest of the process)  
 > Repo: https://github.com/jfernand196/tech-sphere-voice-agent  
 > Default branch: `main`  
 > Owner GitHub: `jfernand196`  
@@ -107,6 +107,7 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | RAG local + hot console | `.txt/.md/.pdf` upload; list; delete; citations |
 | Escalate + summary | Keyword safety + post-LLM guards |
 | SOLID ports | `LLMClient`, `KnowledgePort`; mock / groq / gemini |
+| Gemini free-tier | **3.6 → 3.5 → 3.5-lite → 3.1-lite** on 429/retired model; mock if all quota-exhausted; alarm turns skip cloud |
 | Official kit docs in repo | `docs/challenge/*` |
 | Kit clone + ingest script | `make kit-clone`, `make ingest-kit` |
 | Escalate eval | `make eval-escalate` vs kit labels |
@@ -123,7 +124,7 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | Dataset Excel | **12 demo cases** in UI; **`make eval-escalate`** scores escalate vs verde/amarillo/rojo |
 | Voice | **Kokoro ONNX TTS** (ES `ef_dora`) + browser STT; `TTS_PROVIDER=browser` rollback |
 | Metrics | Tokens from Groq usage; E2E STT→TTS in FE; P50/P95 on call summary — **fill README E2E after a voice run** |
-| Deliverables | Diagram + informe + **video script** done; **record video** + optional screenshots |
+| Deliverables | Diagram + informe + video linked; **5 Sep live demo** — spoken alert + hang-up labels polished |
 
 ### Must finish before submit ❌
 
@@ -159,8 +160,9 @@ Unchanged agent JSON: `reply`, `sources[]`, `patient_state`, `escalate`, `escala
 Env (`backend/.env`):
 
 ```env
-LLM_PROVIDER=groq   # or gemini | mock
-MODEL_ID=llama-3.3-70b-versatile
+LLM_PROVIDER=gemini   # or groq | mock
+MODEL_ID=gemini-3.6-flash
+# Quota cascade (automatic): 3.6 → 3.5 → 3.5-lite → 3.1-lite → mock
 GROQ_API_KEY=
 GEMINI_API_KEY=
 BACKEND_PORT=8001

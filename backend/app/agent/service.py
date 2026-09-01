@@ -6,9 +6,11 @@ import time
 from typing import Any, Dict, List
 
 from app.agent.parsing import build_sources
+from app.agent.reply_guard import drop_unwarranted_alert_close, ensure_spoken_alert
 from app.agent.safety import apply_safety_overrides
 from app.metrics import optional_int
 from app.ports import KnowledgePort, LLMClient
+from app.rag.rank import retrieve_query
 from app.schemas import AgentTurnResponse, PatientState, Severity
 
 _DEFAULT_REPLY = "¿Me puedes contar un poco más cómo te sientes?"
@@ -29,7 +31,7 @@ class AgentService:
         history: List[Dict[str, str]],
     ) -> AgentTurnResponse:
         started = time.perf_counter()
-        rag_hits = self._knowledge.retrieve(message, top_k=4)
+        rag_hits = self._knowledge.retrieve(retrieve_query(message, history), top_k=4)
         rag_context = [hit.model_dump() for hit in rag_hits]
 
         parsed = await self._llm.complete(
@@ -42,20 +44,27 @@ class AgentService:
         )
 
         state = _patient_state(parsed, message)
+        llm_escalate = bool(parsed.get("escalate"))
         escalate, reason, state = apply_safety_overrides(
             message,
-            escalate=bool(parsed.get("escalate")),
+            escalate=llm_escalate,
             escalate_reason=parsed.get("escalate_reason"),
             patient_state=state,
+            history=history,
         )
+        reply = str(parsed.get("reply") or _DEFAULT_REPLY)
+        if llm_escalate and not escalate:
+            reply = drop_unwarranted_alert_close(reply)
+        else:
+            reply = ensure_spoken_alert(reply, escalate)
 
         return AgentTurnResponse(
-            reply=str(parsed.get("reply") or _DEFAULT_REPLY),
+            reply=reply,
             sources=build_sources(parsed, rag_hits),
             patient_state=state,
             escalate=escalate,
             escalate_reason=reason,
-            model_id=self._llm.model_id,
+            model_id=str(parsed.get("model_id") or self._llm.model_id),
             latency_ms=int((time.perf_counter() - started) * 1000),
             tokens_in=optional_int(parsed.get("tokens_in")),
             tokens_out=optional_int(parsed.get("tokens_out")),

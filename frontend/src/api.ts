@@ -1,3 +1,4 @@
+import { httpErrorMessage } from "./errors";
 import type {
   AgentTurnResponse,
   CallSummary,
@@ -6,12 +7,24 @@ import type {
 } from "./types";
 
 const BASE = "/api";
+const TURN_TIMEOUT_MS = 40_000;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, init);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, init);
+  } catch (error) {
+    if (
+      error instanceof DOMException &&
+      (error.name === "AbortError" || error.name === "TimeoutError")
+    ) {
+      throw new Error("El modelo tardó demasiado. Reintenta el turno.");
+    }
+    throw error;
+  }
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || res.statusText);
+    throw new Error(httpErrorMessage(text, res.statusText));
   }
   return res.json() as Promise<T>;
 }
@@ -61,6 +74,7 @@ export function sendTurn(callId: string, message: string) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ call_id: callId, message }),
+    signal: AbortSignal.timeout(TURN_TIMEOUT_MS),
   });
 }
 

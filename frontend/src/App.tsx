@@ -7,6 +7,11 @@ import { useLocale } from "./i18n/LocaleContext";
 
 type Tab = "call" | "knowledge";
 
+function stackLabel(provider: string, modelId: string): string {
+  if (provider === "gemini") return "Gemini Flash";
+  return `${provider} · ${modelId}`;
+}
+
 export default function App() {
   const { t, locale } = useLocale();
   const [tab, setTab] = useState<Tab>("call");
@@ -41,7 +46,7 @@ export default function App() {
           return;
         }
         setHealth({
-          label: `${h.llm_provider} · ${h.model_id}`,
+          label: stackLabel(h.llm_provider, h.model_id),
           tone: "ok",
         });
       })
