@@ -2,10 +2,88 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from app.schemas import PatientState, Severity
+
+FEVER_TOKENS: Tuple[str, ...] = (
+    "fiebre",
+    "afiebrad",
+    "cuerpo caliente",
+    "38",
+    "39",
+    "40",
+)
+WOUND_INFECTION_TOKENS: Tuple[str, ...] = (
+    "secreción purulenta",
+    "secrecion purulenta",
+    "pus",
+    "líquido amarillo",
+    "liquido amarillo",
+    "secreción",
+    "secrecion",
+)
+WOUND_CARE_TOKENS: Tuple[str, ...] = ("herida", "puntos")
+BLEEDING_TOKENS: Tuple[str, ...] = ("sangrado", "sangrando")
+RESPIRATORY_TOKENS: Tuple[str, ...] = (
+    "no puedo respirar",
+    "dificultad para respirar",
+    "respir",
+    "pecho",
+)
+HIGH_FEVER_RE = re.compile(
+    r"39|40|38\s*[.,]\s*[5-9]|38\s+con\s+[5-9]|38\s*[5-9]"
+)
+
+
+def _contains_any(text: str, tokens: Sequence[str]) -> bool:
+    lower = text.lower()
+    return any(token in lower for token in tokens)
+
+
+def has_fever_signal(text: str) -> bool:
+    return _contains_any(text, FEVER_TOKENS)
+
+
+def has_wound_infection_signal(text: str) -> bool:
+    return _contains_any(text, WOUND_INFECTION_TOKENS)
+
+
+def has_wound_mention(text: str) -> bool:
+    return has_wound_infection_signal(text) or _contains_any(text, WOUND_CARE_TOKENS)
+
+
+def wants_wound_followup(query: str) -> bool:
+    return has_fever_signal(query) or has_wound_mention(query)
+
+
+def is_high_fever(text: str) -> bool:
+    return bool(HIGH_FEVER_RE.search(text.lower()))
+
+
+_STATED_TEMP_RE = re.compile(
+    r"3[7-9]\s*[.,]\s*\d|3[7-9]\s+grados|\b3[7-9]\b|\b40\b"
+)
+
+
+def has_stated_temperature(text: str) -> bool:
+    """Patient already gave a thermometer reading (e.g. 37,4)."""
+    return bool(_STATED_TEMP_RE.search((text or "").lower()))
+
+
+def fever_word(text: str) -> str:
+    return "fiebre alta" if is_high_fever(text) else "fiebre"
+
+
+def has_bleeding_signal(text: str) -> bool:
+    return _contains_any(text, BLEEDING_TOKENS)
+
+
+def has_respiratory_signal(text: str) -> bool:
+    return _contains_any(text, RESPIRATORY_TOKENS)
+
 
 ALARM_KEYWORDS: Dict[str, Severity] = {
     "no puedo respirar": Severity.severe,
@@ -56,28 +134,6 @@ class SafetyAssessment:
     escalate_reason: Optional[str]
 
 
-def _has_fever_signal(lower: str) -> bool:
-    return any(
-        token in lower
-        for token in ("fiebre", "afiebrad", "cuerpo caliente", "38", "39", "40")
-    )
-
-
-def _has_wound_infection_signal(lower: str) -> bool:
-    return any(
-        token in lower
-        for token in (
-            "secreción purulenta",
-            "secrecion purulenta",
-            "pus",
-            "líquido amarillo",
-            "liquido amarillo",
-            "secreción",
-            "secrecion",
-        )
-    )
-
-
 def _high_pain(lower: str) -> bool:
     for n in ("8/10", "9/10", "10/10", "en 8/", "en 9/", "en 10/"):
         if n in lower.replace(" ", ""):
@@ -105,12 +161,12 @@ def assess_message(message: str) -> SafetyAssessment:
             reason = f"Señal de alarma detectada: {keyword}"
 
     # Composite clinical picture (common in rojo trajectories).
-    if _has_fever_signal(lower) and _has_wound_infection_signal(lower):
+    if has_fever_signal(lower) and has_wound_infection_signal(lower):
         escalate = True
         severity = Severity.severe
-        reason = reason or "Fiebre + signos de infección en la herida"
+        reason = "Fiebre + signos de infección en la herida"
         symptoms.append("fiebre+herida")
-    elif _high_pain(lower) and _has_fever_signal(lower):
+    elif _high_pain(lower) and has_fever_signal(lower):
         escalate = True
         if severity_rank(Severity.severe) > severity_rank(severity):
             severity = Severity.severe
@@ -125,14 +181,139 @@ def assess_message(message: str) -> SafetyAssessment:
     )
 
 
+_PROBE_DENIAL_MARKERS: Tuple[str, ...] = (
+    "no he notado",
+    "no he tenido",
+    "no he visto",
+    "por el momento no",
+    "por ahora no",
+    "nada de eso",
+    "ninguno de esos",
+    "ninguna de esas",
+)
+
+_SHORT_DENIALS = frozenset(
+    {
+        "no",
+        "no.",
+        "nop",
+        "para nada",
+        "ninguno",
+        "ninguna",
+        "tampoco",
+        "tampoco.",
+    }
+)
+
+
+def is_probe_denial(message: str) -> bool:
+    """Patient is answering 'no' to the symptoms the agent just asked about."""
+    lower = (message or "").lower().strip()
+    if not lower:
+        return False
+    if (
+        has_respiratory_signal(lower)
+        or has_bleeding_signal(lower)
+        or has_wound_infection_signal(lower)
+        or is_high_fever(lower)
+        or _high_pain(lower)
+    ):
+        return False
+    if lower in _SHORT_DENIALS:
+        return True
+    return any(marker in lower for marker in _PROBE_DENIAL_MARKERS)
+
+
+def patient_conversation_text(
+    message: str,
+    history: Sequence[Dict[str, str]] | None = None,
+) -> str:
+    prior = [
+        str(item.get("content") or "")
+        for item in (history or [])
+        if str(item.get("role") or "") in {"patient", "user"}
+    ]
+    return " ".join([*prior, message]).strip()
+
+
+# Internal detector tokens → labels a clinician can read on hang-up.
+_SYMPTOM_ALIASES: Dict[str, str] = {
+    "38": "fiebre",
+    "39": "fiebre",
+    "40": "fiebre",
+    "afiebrad": "fiebre",
+    "cuerpo caliente": "fiebre",
+    "fiebre+herida": "secreción",
+    "dolor+fiebre": "dolor",
+    "secrecion purulenta": "secreción purulenta",
+    "secreción": "secreción",
+    "secrecion": "secreción",
+    "pus": "secreción",
+    "líquido amarillo": "secreción",
+    "liquido amarillo": "secreción",
+    "no puedo respirar": "falta de aire",
+    "dificultad para respirar": "falta de aire",
+    "sangrando": "sangrado",
+    "dolor intenso": "dolor",
+    "dolor muy fuerte": "dolor",
+    "dolor lo pondría en 8": "dolor",
+    "dolor lo pondría en 9": "dolor",
+    "dolor lo pondría en 10": "dolor",
+}
+
+_SKIP_SYMPTOM_KEYS = frozenset({"hablar con un humano", "quiero un doctor", "/10"})
+
+
+def humanize_symptom(raw: str) -> Optional[str]:
+    """Map detector tokens (38, fiebre+herida) to Spanish a clinician can read."""
+    key = (raw or "").strip()
+    if not key:
+        return None
+    lowered = key.lower()
+    if lowered in _SKIP_SYMPTOM_KEYS:
+        return None
+    if lowered in _SYMPTOM_ALIASES:
+        return _SYMPTOM_ALIASES[lowered]
+    if lowered.replace(".", "", 1).isdigit() and lowered.startswith(("37", "38", "39", "40")):
+        return "fiebre"
+    return key
+
+
+def humanize_symptoms(items: Sequence[str]) -> List[str]:
+    """Dedupe hang-up chips; keep the more specific label when one contains another."""
+    mapped: List[str] = []
+    seen: set[str] = set()
+    for item in items:
+        label = humanize_symptom(item)
+        if not label:
+            continue
+        key = label.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        mapped.append(label)
+
+    dropped = {
+        label.lower()
+        for label in mapped
+        if any(
+            other.lower() != label.lower()
+            and label.lower() in other.lower()
+            for other in mapped
+        )
+    }
+    return [label for label in mapped if label.lower() not in dropped]
+
+
 def apply_safety_overrides(
     message: str,
     *,
     escalate: bool,
     escalate_reason: Optional[str],
     patient_state: PatientState,
+    history: Sequence[Dict[str, str]] | None = None,
 ) -> Tuple[bool, Optional[str], PatientState]:
-    """Post-LLM guardrail: never trust the model alone for alarm signals."""
+    """Post-LLM guardrail: never miss an alarm; drop LLM escalate on a clean denial."""
     assessment = assess_message(message)
     if assessment.escalate:
         escalate = True
@@ -142,4 +323,10 @@ def apply_safety_overrides(
         for symptom in assessment.symptoms:
             if symptom not in patient_state.symptoms:
                 patient_state.symptoms.append(symptom)
+        return escalate, escalate_reason, patient_state
+
+    if escalate and is_probe_denial(message):
+        picture = assess_message(patient_conversation_text(message, history))
+        if not picture.escalate:
+            return False, None, patient_state
     return escalate, escalate_reason, patient_state

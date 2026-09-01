@@ -40,6 +40,7 @@ export type ChatItem = CallMessage & {
   e2e_latency_ms?: number | null;
   tokens_in?: number | null;
   tokens_out?: number | null;
+  model_id?: string | null;
 };
 
 export type CallSummary = {

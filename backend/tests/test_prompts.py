@@ -19,8 +19,12 @@ def test_system_prompt_has_soft_agenda_and_long_instruction_policy():
     lower = SYSTEM_PROMPT.lower()
     assert "agenda suave" in lower
     assert "una indicación" in lower or "una indicación concreta" in lower
+    assert "plan concreto" in lower
     assert "fuera de guion" in lower
     assert "asustado" in lower or "hostil" in lower
+    assert "alertar a un humano" in lower
+    assert "febrícula" in lower or "38.5" in SYSTEM_PROMPT
+    assert "¿algo más?" in SYSTEM_PROMPT
 
 
 def test_user_prompt_labels_history_vs_live_rag():

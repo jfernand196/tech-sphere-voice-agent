@@ -23,7 +23,21 @@ def test_groq_with_key():
     assert client.model_id == "llama-3.3-70b-versatile"
 
 
-def test_describe_llm_ready():
+def test_gemini_composes_fast_path_over_flash_cascade():
+    from app.agent.llm_cascade import CascadeLLMClient, FLASH_LADDER
+    from app.agent.llm_fallback import FallbackLLMClient
+    from app.agent.llm_fastpath import SafetyFastPathLLM
+
+    client = build_llm_client(
+        Settings(llm_provider="gemini", gemini_api_key="AQ.test", model_id="gemini-3.6-flash")
+    )
+    assert isinstance(client, SafetyFastPathLLM)
+    assert client.model_id == "gemini-3.6-flash"
+    cloud = client._primary
+    assert isinstance(cloud, FallbackLLMClient)
+    cascade = cloud._primary
+    assert isinstance(cascade, CascadeLLMClient)
+    assert [item.model_id for item in cascade._clients] == list(FLASH_LADDER)
     info = describe_llm(Settings(llm_provider="groq", groq_api_key="gsk_x", model_id="m"))
     assert info["llm_ready"] is True
     info2 = describe_llm(Settings(llm_provider="groq", groq_api_key="", model_id="m"))

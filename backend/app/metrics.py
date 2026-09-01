@@ -60,13 +60,18 @@ def usage_openai_compat(payload: Mapping[str, Any]) -> Usage:
 
 
 def usage_gemini(payload: Mapping[str, Any]) -> Usage:
-    raw = payload.get("usageMetadata") or {}
+    raw = payload.get("usageMetadata") or payload.get("usage") or {}
     if not raw:
         return None
-    return (
-        int(raw.get("promptTokenCount") or 0),
-        int(raw.get("candidatesTokenCount") or 0),
+    prompt = raw.get("promptTokenCount") or raw.get("prompt_tokens") or raw.get("input_tokens")
+    completion = (
+        raw.get("candidatesTokenCount")
+        or raw.get("completion_tokens")
+        or raw.get("output_tokens")
     )
+    if prompt is None and completion is None:
+        return None
+    return (int(prompt or 0), int(completion or 0))
 
 
 def optional_int(value: Any) -> Optional[int]:

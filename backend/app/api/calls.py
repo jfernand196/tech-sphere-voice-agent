@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Body, HTTPException
 
+from app.agent.llm_errors import LLMError, LLMTimeoutError
 from app.api.deps import get_agent_service, get_call_service, settings
 from app.schemas import (
     AgentTurnResponse,
@@ -46,13 +47,18 @@ async def chat_turn(call_id: str, body: ChatTurnRequest):
 
     calls.append_user(call_id, body.message)
     history = calls.history_for_agent(call_id)
-    turn = await get_agent_service().respond(
-        patient_name=record.patient_name,
-        procedure=record.procedure,
-        dia_postop=record.dia_postop,
-        message=body.message,
-        history=history[:-1],
-    )
+    try:
+        turn = await get_agent_service().respond(
+            patient_name=record.patient_name,
+            procedure=record.procedure,
+            dia_postop=record.dia_postop,
+            message=body.message,
+            history=history[:-1],
+        )
+    except LLMTimeoutError as exc:
+        raise HTTPException(status_code=504, detail=str(exc)[:400]) from exc
+    except (LLMError, RuntimeError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)[:400]) from exc
     calls.append_agent(call_id, turn)
     return turn
 

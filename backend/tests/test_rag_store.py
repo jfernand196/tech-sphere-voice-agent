@@ -58,6 +58,78 @@ def test_hybrid_search_finds_unique_protocol(tmp_path: Path) -> None:
     assert "ZETA-42" in hits[0][0].text or "zeta" in hits[0][0].text.lower()
 
 
+def test_followup_rank_prefers_postop_protocol_over_diagnosis() -> None:
+    from app.rag.rank import rank_followup_hits
+    from app.schemas import KnowledgeChunk
+
+    diagnosis = KnowledgeChunk(
+        chunk_id="c1",
+        doc_id="d1",
+        title="Diagnóstico y tratamiento del paciente con colecistitis aguda",
+        text="La colecistitis aguda calculosa se trata con cirugía.",
+        score=9.0,
+    )
+    protocol = KnowledgeChunk(
+        chunk_id="c2",
+        doc_id="d2",
+        title="Protocolo post-operatorio genérico",
+        text="Reportar enrojecimiento, calor local o secreción purulenta.",
+        score=1.0,
+    )
+    ranked = rank_followup_hits(
+        [diagnosis, protocol],
+        "tengo secreción purulenta y fiebre de 38 grados",
+    )
+    assert ranked[0].title == "Protocolo post-operatorio genérico"
+
+
+def test_rank_demotes_diagnosis_on_denial_query() -> None:
+    from app.rag.rank import rank_followup_hits, retrieve_query
+    from app.schemas import KnowledgeChunk
+
+    diagnosis = KnowledgeChunk(
+        chunk_id="c1",
+        doc_id="d1",
+        title="Colelitiasis y colecistitis aguda",
+        text="La colecistitis aguda calculosa se trata con cirugía.",
+        score=9.0,
+    )
+    protocol = KnowledgeChunk(
+        chunk_id="c2",
+        doc_id="d2",
+        title="Protocolo post-operatorio genérico",
+        text="Reportar enrojecimiento, calor local o secreción purulenta.",
+        score=1.0,
+    )
+    ranked = rank_followup_hits(
+        [diagnosis, protocol],
+        "por el momento no he notado eso",
+    )
+    assert ranked[0].title == "Protocolo post-operatorio genérico"
+    query = retrieve_query(
+        "Por el momento no he notado eso",
+        [
+            {
+                "role": "patient",
+                "content": "Hola tengo fiebre 37,4 y un dolor 5 de 10",
+            }
+        ],
+    )
+    assert "fiebre" in query.lower()
+    assert "herida" in query.lower()
+
+
+def test_prefer_unique_docs_avoids_duplicate_titles() -> None:
+    from app.rag.rank import prefer_unique_docs
+    from app.schemas import KnowledgeChunk
+
+    a1 = KnowledgeChunk(chunk_id="a1", doc_id="p", title="Protocolo", text="herida", score=3)
+    a2 = KnowledgeChunk(chunk_id="a2", doc_id="p", title="Protocolo", text="fiebre", score=2)
+    b = KnowledgeChunk(chunk_id="b1", doc_id="q", title="Alarma", text="pus", score=1)
+    out = prefer_unique_docs([a1, a2, b], 2)
+    assert [h.doc_id for h in out] == ["p", "q"]
+
+
 def test_hybrid_search_clinical_keywords(tmp_path: Path) -> None:
     store = LocalVectorStore(
         tmp_path / "docs.json",

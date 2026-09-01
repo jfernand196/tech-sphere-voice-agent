@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from app.agent.llm_cascade import CascadeLLMClient, gemini_model_chain
+from app.agent.llm_fallback import FallbackLLMClient
+from app.agent.llm_fastpath import SafetyFastPathLLM
 from app.agent.llm_gemini import GeminiLLMClient
 from app.agent.llm_groq import GroqLLMClient
 from app.agent.llm_mock import MockLLMClient
@@ -33,10 +36,14 @@ def build_llm_client(settings: Settings) -> LLMClient:
                 "LLM_PROVIDER=gemini pero GEMINI_API_KEY está vacío. "
                 "Crea una key en https://aistudio.google.com/ y pégala en backend/.env"
             )
-        return GeminiLLMClient(
-            model_id=settings.model_id,
-            api_key=settings.gemini_api_key.strip(),
-        )
+        key = settings.gemini_api_key.strip()
+        local = MockLLMClient(model_id="mock")
+        flash_clients = [
+            GeminiLLMClient(model_id=model_id, api_key=key)
+            for model_id in gemini_model_chain(settings.model_id)
+        ]
+        cloud = FallbackLLMClient(CascadeLLMClient(flash_clients), local)
+        return SafetyFastPathLLM(cloud, local)
 
     if provider in {"anthropic", "claude"}:
         raise RuntimeError(

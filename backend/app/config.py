@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     # Allowed: mock | groq | gemini  (see official-kit/docs/stack-tecnico.md)
     llm_provider: str = "mock"
-    # Suggested defaults: llama-3.3-70b-versatile (Groq) or gemini-2.0-flash
+    # Suggested defaults: llama-3.3-70b-versatile (Groq, often retired) or gemini-3.6-flash
     model_id: str = "llama-3.3-70b-versatile"
     groq_api_key: str = ""
     gemini_api_key: str = ""
