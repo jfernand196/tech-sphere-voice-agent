@@ -36,19 +36,68 @@ RESPIRATORY_TOKENS: Tuple[str, ...] = (
 HIGH_FEVER_RE = re.compile(
     r"39|40|38\s*[.,]\s*[5-9]|38\s+con\s+[5-9]|38\s*[5-9]"
 )
+_CLAUSE_SPLIT = re.compile(
+    r"\s+(?:y|pero|aunque|sino(?:\s+que)?)\s+",
+    re.IGNORECASE,
+)
+_UNCERTAIN_NOT_DENIAL = re.compile(r"\bno\s+s[eé]\s+si\b")
+_NOT_ONLY = re.compile(r"\bno\s+solo\b")
+_CANT_BREATHE_PREFIX = re.compile(r"no\s+puedo\s+$")
+_DENIAL_CUE = re.compile(
+    r"\b(?:no|tampoco|sin|ni|nunca|jamás|jamas|ningún|ningun|ninguna|ninguno)\b"
+)
+# The phrase itself is the alarm, not a denial of breathing.
+_SELF_ALARM_KEYWORDS = frozenset(
+    {"no puedo respirar", "dificultad para respirar"}
+)
 
 
-def _contains_any(text: str, tokens: Sequence[str]) -> bool:
+def _clause_before(text: str, start: int) -> str:
+    prefix = text[:start]
+    parts = _CLAUSE_SPLIT.split(prefix)
+    return parts[-1] if parts else prefix
+
+
+def mention_is_affirmed(text: str, token: str, start: int) -> bool:
+    """False when the token sits in a denied clause (no / tampoco / sin …)."""
+    if token in _SELF_ALARM_KEYWORDS:
+        return True
+    clause = _clause_before(text, start)
+    if token.startswith("respir") and _CANT_BREATHE_PREFIX.search(clause):
+        return True
+    if _UNCERTAIN_NOT_DENIAL.search(clause) or _NOT_ONLY.search(clause):
+        return True
+    return not _DENIAL_CUE.search(clause)
+
+
+def contains_affirmed(text: str, token: str) -> bool:
+    """True if `token` appears at least once outside a Spanish denial clause."""
+    if not token:
+        return False
     lower = text.lower()
+    start = 0
+    while True:
+        idx = lower.find(token, start)
+        if idx < 0:
+            return False
+        if mention_is_affirmed(lower, token, idx):
+            return True
+        start = idx + max(len(token), 1)
+
+
+def _contains_any(text: str, tokens: Sequence[str], *, affirmed: bool = False) -> bool:
+    lower = text.lower()
+    if affirmed:
+        return any(contains_affirmed(lower, token) for token in tokens)
     return any(token in lower for token in tokens)
 
 
 def has_fever_signal(text: str) -> bool:
-    return _contains_any(text, FEVER_TOKENS)
+    return _contains_any(text, FEVER_TOKENS, affirmed=True)
 
 
 def has_wound_infection_signal(text: str) -> bool:
-    return _contains_any(text, WOUND_INFECTION_TOKENS)
+    return _contains_any(text, WOUND_INFECTION_TOKENS, affirmed=True)
 
 
 def has_wound_mention(text: str) -> bool:
@@ -78,11 +127,11 @@ def fever_word(text: str) -> str:
 
 
 def has_bleeding_signal(text: str) -> bool:
-    return _contains_any(text, BLEEDING_TOKENS)
+    return _contains_any(text, BLEEDING_TOKENS, affirmed=True)
 
 
 def has_respiratory_signal(text: str) -> bool:
-    return _contains_any(text, RESPIRATORY_TOKENS)
+    return _contains_any(text, RESPIRATORY_TOKENS, affirmed=True)
 
 
 ALARM_KEYWORDS: Dict[str, Severity] = {
@@ -135,10 +184,12 @@ class SafetyAssessment:
 
 
 def _high_pain(lower: str) -> bool:
-    for n in ("8/10", "9/10", "10/10", "en 8/", "en 9/", "en 10/"):
-        if n in lower.replace(" ", ""):
-            return True
-    return "dolor intenso" in lower or "dolor muy fuerte" in lower
+    compact = lower.replace(" ", "")
+    if any(n in compact for n in ("8/10", "9/10", "10/10", "en 8/", "en 9/", "en 10/")):
+        return True
+    return contains_affirmed(lower, "dolor intenso") or contains_affirmed(
+        lower, "dolor muy fuerte"
+    )
 
 
 def assess_message(message: str) -> SafetyAssessment:
@@ -151,7 +202,7 @@ def assess_message(message: str) -> SafetyAssessment:
     for keyword, sev in ALARM_KEYWORDS.items():
         if keyword == "/10":
             continue
-        if keyword not in lower:
+        if not contains_affirmed(lower, keyword):
             continue
         symptoms.append(keyword)
         if severity_rank(sev) > severity_rank(severity):
@@ -190,6 +241,14 @@ _PROBE_DENIAL_MARKERS: Tuple[str, ...] = (
     "nada de eso",
     "ninguno de esos",
     "ninguna de esas",
+    "tampoco está",
+    "tampoco esta",
+    "no está saliendo",
+    "no esta saliendo",
+    "no hay pus",
+    "sin pus",
+    "no tiene pus",
+    "no sale pus",
 )
 
 _SHORT_DENIALS = frozenset(
