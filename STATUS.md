@@ -1,7 +1,7 @@
 # STATUS — Tech Sphere Voice Agent (handoff for humans & agents)
 
 > **Read this file first** before changing code.  
-> Last updated: **2026-08-31** (skip exhausted Flash models for the rest of the process)  
+> Last updated: **2026-09-04** (ignore negated alarm words: “tampoco … pus”)  
 > Repo: https://github.com/jfernand196/tech-sphere-voice-agent  
 > Default branch: `main`  
 > Owner GitHub: `jfernand196`  
@@ -105,7 +105,7 @@ Working end-to-end MVP. **Groq (Llama) and Gemini Flash adapters** are wired (Gr
 | FastAPI + React UI | API `:8001`, UI `:5173` |
 | Call flow + browser STT/TTS | Phases setup/live/ended; stop TTS on hang-up |
 | RAG local + hot console | `.txt/.md/.pdf` upload; list; delete; citations |
-| Escalate + summary | Keyword safety + post-LLM guards |
+| Escalate + summary | Keyword safety + post-LLM guards; **negated “pus”/fiebre does not fire** |
 | SOLID ports | `LLMClient`, `KnowledgePort`; mock / groq / gemini |
 | Gemini free-tier | **3.6 → 3.5 → 3.5-lite → 3.1-lite** on 429/retired model; mock if all quota-exhausted; alarm turns skip cloud |
 | Official kit docs in repo | `docs/challenge/*` |

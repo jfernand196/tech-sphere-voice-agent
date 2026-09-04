@@ -70,6 +70,58 @@ def test_assess_message_intense_pain_plus_fever_escalates():
     assert "dolor+fiebre" in result.symptoms
 
 
+def test_denied_pus_does_not_escalate():
+    result = assess_message(
+        "no no tiene mal olor y no está muy roja y tampoco está saliendo pus"
+    )
+    assert result.escalate is False
+    assert result.severity != Severity.severe
+
+
+def test_no_hay_pus_does_not_escalate():
+    assert assess_message("no hay pus").escalate is False
+    assert assess_message("sin pus en la herida").escalate is False
+
+
+def test_affirmed_pus_still_escalates():
+    result = assess_message("Tengo pus en la herida y fiebre de 38")
+    assert result.escalate is True
+    assert "pus" in result.symptoms
+
+
+def test_uncertain_pus_still_escalates():
+    """'no sé si' is not a denial; missing a real pus mention is worse than a false alarm."""
+    result = assess_message("no sé si es pus")
+    assert result.escalate is True
+
+
+def test_denied_pus_does_not_block_probe_denial():
+    from app.agent.safety import is_probe_denial
+
+    assert is_probe_denial(
+        "no no tiene mal olor y no está muy roja y tampoco está saliendo pus"
+    )
+
+
+def test_fever_plus_denied_pus_does_not_composite():
+    result = assess_message("tengo fiebre de 38 y tampoco está saliendo pus")
+    assert result.escalate is False
+    assert "fiebre+herida" not in result.symptoms
+
+
+def test_safety_override_does_not_force_on_denied_pus():
+    state = PatientState(symptoms=[], severity=Severity.mild)
+    escalate, reason, updated = apply_safety_overrides(
+        "tampoco está saliendo pus",
+        escalate=False,
+        escalate_reason=None,
+        patient_state=state,
+    )
+    assert escalate is False
+    assert updated.severity != Severity.severe
+    _ = reason
+
+
 def test_safety_override_forces_composite_when_model_said_no():
     state = PatientState(symptoms=["dolor"], severity=Severity.mild)
     escalate, reason, updated = apply_safety_overrides(
